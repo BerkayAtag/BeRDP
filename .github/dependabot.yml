@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directories:
+      - /src/BeRdp.Backend
+      - /src/BeRdp.AdminConsole
+      - /src/BeRdp.Client
+      - /src/BeRdp.ServiceSetup
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

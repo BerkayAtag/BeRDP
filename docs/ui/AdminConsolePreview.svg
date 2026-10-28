@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#1e1e1e" />
+
+  <rect x="24" y="24" width="1232" height="80" rx="10" fill="#252526" stroke="#3c3c3c" />
+  <text x="44" y="66" fill="#f3f3f3" font-size="28" font-family="Segoe UI, Arial">BeRDP Admin Console</text>
+  <text x="44" y="90" fill="#b8b8b8" font-size="14" font-family="Segoe UI, Arial">Dark mode management dashboard</text>
+  <rect x="1090" y="44" width="70" height="34" rx="6" fill="#0078d4" />
+  <text x="1110" y="66" fill="#ffffff" font-size="13" font-family="Segoe UI, Arial">Refresh</text>
+  <rect x="1170" y="44" width="70" height="34" rx="6" fill="#404040" />
+  <text x="1190" y="66" fill="#ffffff" font-size="13" font-family="Segoe UI, Arial">Logout</text>
+
+  <rect x="24" y="124" width="420" height="572" rx="10" fill="#252526" stroke="#3c3c3c" />
+  <text x="44" y="156" fill="#f3f3f3" font-size="22" font-family="Segoe UI, Arial">Users</text>
+
+  <rect x="44" y="180" width="380" height="42" rx="6" fill="#1b1b1c" stroke="#3c3c3c" />
+  <text x="58" y="206" fill="#b8b8b8" font-size="14" font-family="Segoe UI, Arial">username / display name / password</text>
+  <rect x="44" y="232" width="380" height="36" rx="6" fill="#0078d4" />
+  <text x="204" y="255" fill="#ffffff" font-size="14" font-family="Segoe UI, Arial">Create User</text>
+
+  <rect x="44" y="286" width="380" height="118" rx="8" fill="#2d2d30" stroke="#3c3c3c" />
+  <text x="58" y="316" fill="#f3f3f3" font-size="16" font-family="Segoe UI, Arial">Platform Admin (admin)</text>
+  <text x="58" y="340" fill="#b8b8b8" font-size="13" font-family="Segoe UI, Arial">Assigned: Muhasebe VM, Raporlama VM</text>
+  <rect x="338" y="298" width="74" height="24" rx="12" fill="none" stroke="#0078d4" />
+  <text x="357" y="315" fill="#9cd2ff" font-size="12" font-family="Segoe UI, Arial">ADMIN</text>
+
+  <rect x="44" y="416" width="380" height="118" rx="8" fill="#2d2d30" stroke="#3c3c3c" />
+  <text x="58" y="446" fill="#f3f3f3" font-size="16" font-family="Segoe UI, Arial">Demo User (demo.user)</text>
+  <text x="58" y="470" fill="#b8b8b8" font-size="13" font-family="Segoe UI, Arial">Drop VM card here to assign</text>
+
+  <rect x="460" y="124" width="380" height="572" rx="10" fill="#252526" stroke="#3c3c3c" />
+  <text x="480" y="156" fill="#f3f3f3" font-size="22" font-family="Segoe UI, Arial">Machines</text>
+
+  <rect x="480" y="180" width="340" height="42" rx="6" fill="#1b1b1c" stroke="#3c3c3c" />
+  <text x="494" y="206" fill="#b8b8b8" font-size="14" font-family="Segoe UI, Arial">name / ip / rdp port</text>
+  <rect x="480" y="232" width="340" height="36" rx="6" fill="#0078d4" />
+  <text x="622" y="255" fill="#ffffff" font-size="14" font-family="Segoe UI, Arial">Create Machine</text>
+
+  <rect x="480" y="286" width="340" height="110" rx="8" fill="#2d2d30" stroke="#3c3c3c" />
+  <text x="496" y="316" fill="#f3f3f3" font-size="16" font-family="Segoe UI, Arial">Muhasebe VM</text>
+  <text x="496" y="340" fill="#b8b8b8" font-size="13" font-family="Segoe UI, Arial">192.168.1.50:3389</text>
+  <circle cx="784" cy="315" r="7" fill="#4ec9b0" />
+  <text x="796" y="320" fill="#b8b8b8" font-size="13" font-family="Segoe UI, Arial">Online</text>
+
+  <rect x="480" y="408" width="340" height="110" rx="8" fill="#2d2d30" stroke="#3c3c3c" />
+  <text x="496" y="438" fill="#f3f3f3" font-size="16" font-family="Segoe UI, Arial">Raporlama VM</text>
+  <text x="496" y="462" fill="#b8b8b8" font-size="13" font-family="Segoe UI, Arial">192.168.1.51:3389</text>
+  <circle cx="784" cy="437" r="7" fill="#9a9a9a" />
+  <text x="796" y="442" fill="#b8b8b8" font-size="13" font-family="Segoe UI, Arial">Offline</text>
+
+  <rect x="856" y="124" width="400" height="572" rx="10" fill="#252526" stroke="#3c3c3c" />
+  <text x="876" y="156" fill="#f3f3f3" font-size="22" font-family="Segoe UI, Arial">Assignments</text>
+  <rect x="876" y="186" width="360" height="70" rx="8" fill="#2d2d30" stroke="#3c3c3c" />
+  <text x="892" y="216" fill="#f3f3f3" font-size="14" font-family="Segoe UI, Arial">Platform Admin (admin) - Muhasebe VM</text>
+  <text x="892" y="238" fill="#b8b8b8" font-size="13" font-family="Segoe UI, Arial">demo.user - Raporlama VM</text>
+
+  <text x="876" y="292" fill="#b8b8b8" font-size="13" font-family="Segoe UI, Arial">Drag a machine card and drop to a user card.</text>
+</svg>

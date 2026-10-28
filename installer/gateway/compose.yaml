@@ -1,0 +1,23 @@
+services:
+  guacd:
+    image: guacamole/guacd:1.6.0
+    restart: unless-stopped
+    networks:
+      - rdp-gateway
+
+  guacamole:
+    image: guacamole/guacamole:1.6.0
+    restart: unless-stopped
+    depends_on:
+      - guacd
+    environment:
+      GUACD_HOSTNAME: guacd
+      JSON_ENABLED: "true"
+      JSON_SECRET_KEY: "${BERDP_GATEWAY_JSON_KEY:?Set a randomly generated 32-hex-digit shared key}"
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - rdp-gateway
+
+networks:
+  rdp-gateway:

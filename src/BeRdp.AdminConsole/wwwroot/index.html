@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="tr" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>BeRDP | Dijital Çalışma Alanı</title>
+  <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+  <main class="app-root">
+    <section id="loginView" class="login-shell">
+      <section class="panel login-panel">
+        <span class="brand-label">BeRDP · DİJİTAL ÇALIŞMA ALANI</span>
+        <h1>Çalışma alanınıza hoş geldiniz</h1>
+        <p class="hint">Domain hesabınızla atanmış masaüstlerinize ve yetkili yönetim alanlarına erişin.</p>
+        <button id="windowsLoginButton" type="button">Windows Oturumuyla Giriş</button>
+        <p class="hint">Windows Hello parolanızı doldurmaz. Bu seçenek kurumsal Windows kimliğinizi kullanır.</p>
+        <form id="loginForm" class="stack">
+          <label>
+            Kullanıcı adı / UPN
+            <input id="usernameInput" type="text" autocomplete="username" maxlength="256" placeholder="kullanici, EXAMPLE\kullanici veya kullanici@example.test" required />
+          </label>
+          <label>
+            Parola
+            <input id="passwordInput" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit" class="secondary">Parola ile Giriş</button>
+        </form>
+        <p class="hint">Yerel yönetici hesabı yalnız ilk kurulum ve kurtarma içindir.</p>
+        <p id="loginError" class="error" role="alert"></p>
+      </section>
+    </section>
+
+    <section id="dashboardView" class="dashboard hidden">
+      <aside class="sidebar panel">
+        <div class="sidebar-head">
+          <h2>BeRDP</h2>
+          <p id="adminInfo" class="hint"></p>
+        </div>
+
+        <nav class="nav-items" aria-label="Çalışma alanı">
+          <button type="button" class="nav-link" data-page="desktops">Masaüstlerim</button>
+        </nav>
+        <details class="nav-group" data-admin-only open>
+          <summary>Yönetim</summary>
+          <div class="nav-items">
+            <button type="button" class="nav-link active" data-page="overview" data-console-admin-only>Genel Bakış</button>
+            <button type="button" class="nav-link" data-page="users" data-console-admin-only>Kullanıcılar</button>
+            <button type="button" class="nav-link" data-page="authorization" data-console-admin-only>Yetkilendirme</button>
+            <button type="button" class="nav-link" data-page="machines" data-console-admin-only>Makine & Entitlement</button>
+            <button type="button" class="nav-link" data-page="local" data-console-admin-only>Yerel Hesap Bakımı</button>
+          </div>
+        </details>
+
+        <details class="nav-group" data-admin-only open>
+          <summary>Entegrasyon</summary>
+          <div class="nav-items">
+            <button type="button" class="nav-link" data-page="ad" data-console-admin-only>AD Entegrasyon</button>
+          </div>
+        </details>
+
+        <details class="nav-group" data-admin-only open>
+          <summary>Güvenlik & Ağ</summary>
+          <div class="nav-items">
+            <button type="button" class="nav-link" data-page="firewall" data-console-admin-only>Ağ Erişim Kuralları</button>
+            <button type="button" class="nav-link" data-page="installation" data-console-admin-only>Sessiz Kurulum & Kaldırma</button>
+          </div>
+        </details>
+      </aside>
+
+      <section class="content">
+        <header class="content-topbar panel">
+          <div>
+            <h1 id="pageTitle">Genel Bakış</h1>
+            <p class="hint">Kurumsal masaüstleri · Domain kimliği · Merkezi erişim</p>
+          </div>
+          <div class="topbar-actions">
+            <button id="downloadClientButton" type="button" class="secondary" title="BeRDP İstemci Kurulum Paketi indir">⬇ Client Setup İndir</button>
+            <button id="themeToggleButton" type="button" class="secondary">Tema Değiştir</button>
+            <button id="refreshButton" type="button">Yenile</button>
+            <button id="logoutButton" type="button" class="secondary">Çıkış</button>
+          </div>
+        </header>
+
+        <p id="globalError" class="error" role="alert"></p>
+
+        <section id="page-desktops" class="page hidden">
+          <section class="card">
+            <h2>Tüm Sanal Makineler</h2>
+            <p class="hint">Tüm sanal makinelerin listesi ve atama bilgileri. Erişilebilirlik, sunucudan yapılan TCP kontrolünü gösterir.</p>
+            <div class="filter-row">
+              <input id="desktopsFilterInput" type="text" placeholder="Makine adı, IP, DNS filtrele..." />
+              <button id="applyDesktopsFilterButton" type="button">Uygula</button>
+            </div>
+            <div id="desktopList" class="list" aria-live="polite"></div>
+            <div class="pager-row">
+              <button id="desktopsPrevButton" type="button" class="secondary">Önceki</button>
+              <span id="desktopsPageInfo" class="hint"></span>
+              <button id="desktopsNextButton" type="button" class="secondary">Sonraki</button>
+            </div>
+          </section>
+        </section>
+
+        <section id="page-overview" class="page">
+          <div class="stats-grid">
+            <article class="card stat-card">
+              <h3>Toplam Kullanıcı</h3>
+              <p id="totalUsersStat" class="stat-value">0</p>
+            </article>
+            <article class="card stat-card">
+              <h3>Toplam Makine</h3>
+              <p id="totalMachinesStat" class="stat-value">0</p>
+            </article>
+            <article class="card stat-card">
+              <h3>Admin AD Grup Yetkisi</h3>
+              <p id="adminGroupsStat" class="stat-value">0</p>
+            </article>
+            <article class="card stat-card">
+              <h3>AD Durumu</h3>
+              <p id="adStatusStat" class="stat-value">Pasif</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="page-local" class="page hidden">
+          <p class="notice">Günlük kullanıcı yönetimini Domain Kullanıcıları ve AD Entegrasyon ekranlarından yapın. Yerel hesaplar yalnız ilk kurulum ve kurtarma içindir.</p>
+          <section id="passwordSettingsCard" class="card">
+            <h2>Hesap Parolasını Değiştir</h2>
+            <p class="hint">Lokal hesap içindir. AD parolalarını domain üzerinden değiştirin.</p>
+            <form id="changePasswordForm" class="stack compact">
+              <input id="currentPasswordInput" type="password" placeholder="Mevcut parola" autocomplete="current-password" required />
+              <input id="newAccountPasswordInput" type="password" placeholder="Yeni parola (en az 14 karakter)" autocomplete="new-password" minlength="14" maxlength="72" required />
+              <button type="submit">Parolayı Değiştir</button>
+            </form>
+          </section>
+            <section class="card">
+              <h2>Lokal Kullanıcı Ekle</h2>
+              <form id="createUserForm" class="stack compact">
+                <input id="newUsername" type="text" placeholder="Kullanıcı adı" required />
+                <input id="newDisplayName" type="text" placeholder="Görünen ad" required />
+                <input id="newPassword" type="password" placeholder="Parola" required />
+                <button type="submit">Kullanıcı Ekle</button>
+              </form>
+              <p class="hint">Admin yetki verme/kaldırma işlemleri ayrı Yetkilendirme sayfasından yapılır.</p>
+            </section>
+        </section>
+
+        <section id="page-users" class="page hidden">
+            <section class="card">
+              <h2>Domain Kullanıcıları</h2>
+              <p class="hint">Not: AD'deki tüm kullanıcılar otomatik yüklenmez; AD Entegrasyon sayfasından arayıp kullanıcı havuzuna eklenir.</p>
+              <div class="filter-row">
+                <input id="usersFilterInput" type="text" placeholder="Kullanıcı adı, görünen ad, domain..." />
+                <select id="usersSourceFilter">
+                  <option value="ad" selected>Sadece AD</option>
+                  <option value="all">Tüm Kaynaklar</option>
+                  <option value="local">Sadece Lokal</option>
+                </select>
+                <button id="applyUsersFilterButton" type="button">Uygula</button>
+              </div>
+              <div class="pager-row">
+                <button id="usersPrevPageButton" type="button" class="secondary">Önceki</button>
+                <span id="usersPageInfo" class="hint">Sayfa 1</span>
+                <button id="usersNextPageButton" type="button" class="secondary">Sonraki</button>
+              </div>
+              <div id="usersList" class="list"></div>
+            </section>
+        </section>
+
+        <section id="page-authorization" class="page hidden">
+          <div class="grid two-col">
+            <section class="card">
+              <h2>Kişisel Admin Yetkilendirme</h2>
+              <div class="filter-row">
+                <input id="authUsersFilterInput" type="text" placeholder="Kullanıcı filtrele" />
+                <button id="applyAuthUsersFilterButton" type="button">Uygula</button>
+              </div>
+              <div class="pager-row">
+                <button id="authUsersPrevPageButton" type="button" class="secondary">Önceki</button>
+                <span id="authUsersPageInfo" class="hint">Sayfa 1</span>
+                <button id="authUsersNextPageButton" type="button" class="secondary">Sonraki</button>
+              </div>
+              <div id="authorizationUsersList" class="list"></div>
+            </section>
+
+            <section class="card">
+              <h2>AD Grup Bazlı Admin Yetkilendirme</h2>
+              <form id="authGroupSearchForm" class="filter-row">
+                <input id="authGroupSearchInput" type="text" placeholder="AD grup adı ara" />
+                <button type="submit">Ara</button>
+              </form>
+              <div id="authGroupSearchResults" class="list"></div>
+              <h3>Yetkili AD Grupları</h3>
+              <div id="adminAccessGroupsList" class="list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="page-machines" class="page hidden">
+          <div class="grid two-col">
+            <section class="card">
+              <h2>1. Makineyi tanımlayın</h2>
+              <form id="createMachineForm" class="stack compact">
+                <input id="newMachineName" type="text" placeholder="Makine adı" required />
+                <input id="newMachineIp" type="text" placeholder="IP adresi" required />
+                <input id="newMachineRdpHostName" type="text" maxlength="253" placeholder="RDP DNS adı (SSO için: vm01.example.test)" />
+                <input id="newMachinePort" type="number" min="1" max="65535" value="3389" required />
+              </form>
+
+              <h3>2. Erişim vereceğiniz kişileri veya grupları seçin</h3>
+              <details class="assignment-section" open>
+              <summary>AD grubu ile erişim (önerilen)</summary>
+              <form id="machineGroupSearchForm" class="filter-row">
+                <input id="machineGroupSearchInput" type="text" placeholder="AD grup ara" />
+                <button type="submit">Ara</button>
+              </form>
+              <div id="machineGroupSearchResults" class="list compact-list"></div>
+              <div id="selectedMachineGroups" class="chip-list"></div>
+              </details>
+              <details class="assignment-section">
+              <summary>Kişiye özel erişim</summary>
+              <form id="machineUserSearchForm" class="filter-row">
+                <input id="machineUserSearchInput" type="text" placeholder="Kullanıcı ara" />
+                <button type="submit">Ara</button>
+              </form>
+              <div id="machineUserSearchResults" class="list compact-list"></div>
+              <div>
+                <p class="hint">Seçili bireysel kullanıcılar</p>
+                <div id="selectedMachineUsers" class="chip-list"></div>
+              </div>
+              </details>
+              <button type="submit" form="createMachineForm">Makineyi ve Seçilen Erişimleri Kaydet</button>
+              <button id="cancelMachineEditButton" type="button" class="secondary hidden">Düzenlemeyi İptal Et</button>
+              <p id="machineCreateInfo" class="hint"></p>
+            </section>
+
+            <section class="card">
+              <h2>Makineler</h2>
+              <div class="filter-row">
+                <input id="machinesFilterInput" type="text" placeholder="Makine adı, DNS veya IP filtrele" />
+                <button id="applyMachinesFilterButton" type="button">Uygula</button>
+              </div>
+              <div class="pager-row">
+                <button id="machinesPrevPageButton" type="button" class="secondary">Önceki</button>
+                <span id="machinesPageInfo" class="hint">Sayfa 1</span>
+                <button id="machinesNextPageButton" type="button" class="secondary">Sonraki</button>
+              </div>
+              <div id="machinesList" class="list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="page-ad" class="page hidden">
+          <div class="grid two-col">
+            <section class="card">
+              <h2>AD Entegrasyon Ayarları</h2>
+              <form id="adConfigForm" class="stack compact">
+                <label class="checkbox-row">
+                  <input id="adEnabledInput" type="checkbox" />
+                  Active Directory aktif
+                </label>
+                <input id="adDomainInput" type="text" placeholder="Domain (örn: example.test)" />
+                <input id="adContainerInput" type="text" placeholder="OU=People,OU=Example,DC=aknet,DC=akb" />
+                <label class="checkbox-row">
+                  <input id="adUseMachineCredentialsInput" type="checkbox" checked />
+                  Sunucu makine hesabı ile bağlan
+                </label>
+                <input id="adBindUsernameInput" type="text" placeholder="Bind kullanıcı adı (opsiyonel)" />
+                <input id="adBindPasswordInput" type="password" placeholder="Bind parola (opsiyonel)" />
+                <div class="button-row">
+                  <button id="saveAdConfigButton" type="submit">AD Ayarlarını Kaydet</button>
+                  <button id="testAdConfigButton" type="button" class="secondary">Bağlantıyı Test Et</button>
+                </div>
+              </form>
+              <p id="adConfigInfo" class="hint"></p>
+            </section>
+
+            <section class="card">
+              <h2>Domain User Arama</h2>
+              <form id="adUserSearchForm" class="filter-row">
+                <input id="adUserSearchInput" type="text" placeholder="sAMAccountName / displayName / UPN" />
+                <button type="submit">Ara</button>
+              </form>
+              <div id="adSearchResults" class="list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="page-firewall" class="page hidden">
+          <section class="card">
+            <h2>Ağ Erişim & Firewall Kuralları</h2>
+            <p class="hint">BeRDP Sunucu, İstemci, RDP Hedefleri ve Active Directory arasındaki gerekli port ve protokol izinleri.</p>
+          </section>
+
+          <section class="card">
+            <h2>1. İstemci ◄► Sunucu ve RDP Hedefleri Trafiği</h2>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Kaynak</th>
+                  <th>Hedef</th>
+                  <th>Protokol</th>
+                  <th>Port</th>
+                  <th>Açıklama</th>
+                  <th>Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>İstemci VLAN'ları</td>
+                  <td>BeRDP Sunucusu</td>
+                  <td><span class="badge local">TCP</span></td>
+                  <td><strong>5001</strong></td>
+                  <td>REST API, Login, Negotiate SSO ve SignalR WebSocket kanalı</td>
+                  <td><span class="badge admin">Zorunlu</span></td>
+                </tr>
+                <tr>
+                  <td>Yönetici & Portal Ağları</td>
+                  <td>BeRDP Sunucusu</td>
+                  <td><span class="badge local">TCP</span></td>
+                  <td><strong>5173</strong></td>
+                  <td>Web Yönetim Paneli ve Kullanıcı Portalı</td>
+                  <td><span class="badge admin">Zorunlu</span></td>
+                </tr>
+                <tr>
+                  <td>İstemci VLAN'ları</td>
+                  <td>RDP Hedefleri (VM/PC)</td>
+                  <td><span class="badge local">TCP</span></td>
+                  <td><strong>3389</strong></td>
+                  <td>Standart RDP Uzak Masaüstü Bağlantısı</td>
+                  <td><span class="badge admin">Zorunlu</span></td>
+                </tr>
+                <tr>
+                  <td>İstemci VLAN'ları</td>
+                  <td>RDP Hedefleri (VM/PC)</td>
+                  <td><span class="badge ad">UDP</span></td>
+                  <td><strong>3389</strong></td>
+                  <td>RDP 8.0+ Yüksek Performans Akıcı Görüntü/Ses Taşıması</td>
+                  <td><span class="badge standard">Önerilen</span></td>
+                </tr>
+                <tr>
+                  <td>BeRDP Sunucusu</td>
+                  <td>RDP Hedefleri (VM/PC)</td>
+                  <td><span class="badge local">TCP</span></td>
+                  <td><strong>3389</strong></td>
+                  <td>Anlık RDP Erişilebilirlik (Online/Offline) Probe Kontrolü</td>
+                  <td><span class="badge standard">Önerilen</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="card">
+            <h2>2. BeRDP Sunucusu ◄► Active Directory (Domain Controller) Trafiği</h2>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Kaynak</th>
+                  <th>Hedef</th>
+                  <th>Protokol</th>
+                  <th>Port</th>
+                  <th>Açıklama</th>
+                  <th>Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>BeRDP Sunucusu</td>
+                  <td>Domain DNS</td>
+                  <td><span class="badge local">TCP / UDP</span></td>
+                  <td><strong>53</strong></td>
+                  <td>DNS Çözümleme ve DC Keşfi (SRV Sorguları)</td>
+                  <td><span class="badge admin">Zorunlu</span></td>
+                </tr>
+                <tr>
+                  <td>BeRDP Sunucusu</td>
+                  <td>Domain Controller</td>
+                  <td><span class="badge local">TCP / UDP</span></td>
+                  <td><strong>88</strong></td>
+                  <td>Kerberos Kimlik Doğrulama Servisi</td>
+                  <td><span class="badge admin">Zorunlu</span></td>
+                </tr>
+                <tr>
+                  <td>BeRDP Sunucusu</td>
+                  <td>Domain Controller</td>
+                  <td><span class="badge local">TCP / UDP</span></td>
+                  <td><strong>389</strong></td>
+                  <td>LDAP / CLDAP Dizin Sorguları ve Kullanıcı Arama</td>
+                  <td><span class="badge admin">Zorunlu</span></td>
+                </tr>
+                <tr>
+                  <td>BeRDP Sunucusu</td>
+                  <td>Global Catalog</td>
+                  <td><span class="badge local">TCP</span></td>
+                  <td><strong>3268</strong></td>
+                  <td>Active Directory Global Catalog Sorguları</td>
+                  <td><span class="badge admin">Zorunlu</span></td>
+                </tr>
+                <tr>
+                  <td>BeRDP Sunucusu</td>
+                  <td>Domain Controller</td>
+                  <td><span class="badge local">TCP</span></td>
+                  <td><strong>135</strong></td>
+                  <td>RPC Endpoint Mapper (AD Grup sorguları)</td>
+                  <td><span class="badge admin">Zorunlu</span></td>
+                </tr>
+                <tr>
+                  <td>BeRDP Sunucusu</td>
+                  <td>Domain Controller</td>
+                  <td><span class="badge local">TCP</span></td>
+                  <td><strong>49152 - 65535</strong></td>
+                  <td>Windows Dinamik RPC Aralığı (NetLogon / LSA)</td>
+                  <td><span class="badge admin">Zorunlu</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="card">
+            <h2>3. Hızlı Güvenlik Duvarı Kontrol Komutları (PowerShell)</h2>
+            <p class="hint">Yönetici PowerShell terminalinde aşağıdaki komutlarla port erişimlerini doğrulayabilirsiniz:</p>
+            <pre class="code-block"><code># BeRDP Backend API erişimini test et (TCP 5001)
+Test-NetConnection -ComputerName "sunucu-ip" -Port 5001
+
+# RDP Hedef Makine erişimini test et (TCP 3389)
+Test-NetConnection -ComputerName "vm01.example.test" -Port 3389
+
+# Active Directory LDAP erişimini test et (TCP 389)
+Test-NetConnection -ComputerName "dc01.example.test" -Port 389</code></pre>
+          </section>
+        </section>
+
+        <section id="page-installation" class="page hidden">
+          <section class="card">
+            <h2>BeRDP Sessiz Kurulum & Kaldırma Rehberi</h2>
+            <p class="hint">Kurumsal ortamda (SCCM / Intune / GPO) kullanılabilecek sessiz kurulum ve kaldırma komutları. Kurulum parametreleri ve yapılandırması için docs/INSTALLATION_GUIDE.md dosyasına bakınız.</p>
+          </section>
+
+          <section class="card">
+            <h2>1. İstemci (Client) Sessiz Kurulum Komutları</h2>
+            <p class="hint">Normal Kullanıcı Bilgisayarları (SSO ve Desktop Icon ile):</p>
+            <pre class="code-block"><code>BeRDP.Client.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /TASKS="desktopicon" /BACKENDURL="https://berdp.example.test" /SSO=1 /LOG="%TEMP%\BeRdpClientInstall.log"</code></pre>
+
+            <p class="hint" style="margin-top: 12px;">RDP Hedefi Olarak Kullanılan İş İstasyonları (RDP Host, AVC444 ve Firewall Kuralları ile):</p>
+            <pre class="code-block"><code>BeRDP.Client.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /BACKENDURL="https://berdp.example.test" /SSO=1 /TASKS="desktopicon,rdphost" /RDPNETWORKS="10.20.0.0/16,10.30.10.0/24" /RDPPORT=3389 /LOG="%TEMP%\BeRdpHostInstall.log"</code></pre>
+          </section>
+
+          <section class="card">
+            <h2>2. İstemci (Client) Sessiz Kaldırma Komutu</h2>
+            <pre class="code-block"><code>"C:\Program Files\BeRDP\Client\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART</code></pre>
+          </section>
+
+          <section class="card">
+            <h2>3. Sunucu (Server) Sessiz Kurulum Komutu</h2>
+            <p class="hint">Yönetici haklarıyla (Elevated CMD) çalıştırılmalıdır:</p>
+            <pre class="code-block"><code>BeRDP.Server.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /SSO=1 /CLIENTNETWORKS="10.20.0.0/16,10.30.10.0/24" /PORTALNETWORKS="10.20.0.0/16,10.30.10.0/24" /LOG="%TEMP%\BeRdpServerInstall.log"</code></pre>
+          </section>
+
+          <section class="card">
+            <h2>4. Sunucu (Server) Sessiz Kaldırma Komutu</h2>
+            <pre class="code-block"><code>"C:\ProgramData\BeRDP\Server\Uninstall\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART</code></pre>
+            <p class="notice">Sunucu kaldırılırken veritabanı (<code>berdp.db</code>) ve anahtar yedekleri veri kaybını önlemek için silinmez.</p>
+          </section>
+
+          <section class="card">
+            <h2>5. Güncellemeler ve Yükseltme (In-Place Upgrade)</h2>
+            <p class="hint">Mevcut servisleri durdurmadan veya eski sürümü kaldırmadan yeni setup dosyalarını doğrudan çalıştırın:</p>
+            <pre class="code-block"><code>Sunucuda:
+BeRDP.Server.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
+
+İstemcilerde:
+BeRDP.Client.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-</code></pre>
+          </section>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script src="/config.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
