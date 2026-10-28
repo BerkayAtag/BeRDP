@@ -15,3 +15,5 @@ Live API/browser checks use Playwright installed outside production projects. In
 Old PowerShell smoke scripts describe legacy deployments and are not the release acceptance gate; use the .NET runner and Smoke.Web.cjs for 1.6.0. See docs/VALIDATION.md for environment-dependent test gaps.
 
 Docker Desktop Linux containers, PowerShell 7 and Python 3: `pwsh -NoProfile -File tests/Smoke.Docker.ps1`. This checks real HTTPS certificate/hostname validation, remote HTTP rejection, authentication and an empty fresh database. It does not test Windows setup, WPF or Active Directory.
+
+`Smoke.Installers.ps1` yalnız GitHub-hosted disposable Windows runner üzerinde çalışır; mevcut kurulum bulursa durur. Gerçek install/reinstall/uninstall, loopback sağlık ve appwiz Publisher değerlerini doğrular. Kişisel bilgisayarda çalıştırılmaz.

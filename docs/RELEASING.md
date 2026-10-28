@@ -8,4 +8,6 @@
 6. GitHub Release'e Server/Client setup ve SHA256SUMS yükleyin; açık test sınırları ve yükseltme notlarını ekleyin. Büyük binary dosyalarını git geçmişine koymayın.
 7. GitHub Pages için `docs/` dizinini seçin. `docs/site-config.js` içindeki repositoryUrl alanına doğrulanmış depo URL'sini girin; tanıtım sayfası release indirme bağlantılarını buradan üretir.
 
-Yerel paketler `dist/installers/` altında üretilir. Yayın hesabı ve kod imzalama sertifikası bu çalışma kapsamında varsayılmaz. CI örneği otomatik public yayın yapmaz; çıktı review için artifact olarak tutulur.
+Yerel paketler `dist/installers/` altında üretilir. Yayın hedefi `BerkayAtag/BeRDP` olarak doğrulandı. Kod imzalama sertifikası dahil değildir. CI örneği otomatik public yayın yapmaz; çıktı review için artifact olarak tutulur.
+
+`publish-candidate.yml` yalnız başarılı main Windows test çalışmasının artifact'ini kabul eder, SHA256 ve iki paketin Publisher sonucunu doğrular. Yayıncı kontrolü başarısızsa public release yapılmaz.

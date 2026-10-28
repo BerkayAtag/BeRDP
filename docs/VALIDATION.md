@@ -15,12 +15,25 @@ HTTP testi yalnız geçici SQLite DB kullanır: anonim erişim reddi, varsayıla
 
 Test adresleri `http://127.0.0.1:5501` ve `http://127.0.0.1:5517`; bunlar yalnız yerel QA adresleridir. Ekran görüntüleri `docs/ui/login.png`, `machines.png`, `login-mobile.png` içinde. İsimler/IP'ler sentetiktir.
 
-Gerçek AD/Kerberos/SSO, TLS reverse proxy, hedef VM'de RDP/NLA, çoklu ekran donanımı, kurulumun yükseltilmiş servis yaşam döngüsü, standart kullanıcı ACL denemesi, EDR/WDAC, kaldırma ve yedekten dönüş bu ortamda tamamlanmış değildir. Otomatik testlerin geçmesi bu senaryoların geçtiği anlamına gelmez.
+Gerçek AD/Kerberos/SSO, TLS reverse proxy, hedef VM'de RDP/NLA, çoklu ekran donanımı, standart kullanıcı ACL denemesi, EDR/WDAC, eski sürümden yükseltme ve yedekten dönüş bu ortamda tamamlanmış değildir. Otomatik testlerin geçmesi bu senaryoların geçtiği anlamına gelmez.
 
 Temiz self-contained win-x64 derlemesi ve iki Inno Setup derlemesi geçti. Server/Client EXE CompanyName alanı `Berkay Atağ`, ProductVersion `1.6.0` olarak okundu. Paketler Authenticode imzalı değildir.
 
-Tanıtım sayfası Edge ile 1440 ve 390 piksel genişlikte kontrol edildi: görseller yüklendi, yatay taşma ve JavaScript hatası görülmedi. GitHub Actions tanımı yerelde hazırlandı; uzak workflow çalışması henüz yapılmadı.
+Tanıtım sayfası Edge ile 1440 ve 390 piksel genişlikte kontrol edildi: görseller yüklendi, yatay taşma ve JavaScript hatası görülmedi. GitHub Actions üzerinde temiz Windows çalıştırıcısı kullanıldı.
 
 Docker Desktop Linux container içinde 6 HTTPS kontrolü geçti: sertifika ve hostname doğrulaması, uzak cleartext HTTP reddi, anonim yönetim reddi, bootstrap giriş, boş makine listesi ve yalnız açıkça oluşturulan yönetici. VMware laboratuvar hazırlığı tamamlanamadı; kullanıcı tercihiyle VM adımı atlandı. Çalışan test VM yoktur.
 
-`appwiz.cpl` Publisher kaydı her iki Inno tanımında `AppPublisher=Berkay Atağ` olarak belirlenir. EXE CompanyName alanı ayrıca doğrulandı; Windows üzerinde gerçek kurulum sonrası uninstall registry kaydı bu ortamda test edilmedi.
+`appwiz.cpl` Publisher kaydı her iki Inno tanımında `AppPublisher=Berkay Atağ` olarak belirlenir. EXE CompanyName alanı ayrıca doğrulandı; Gerçek kurulum sonrası uninstall registry kaydı GitHub-hosted Windows ortamında test edildi ve her iki paket için tam olarak `Berkay Atağ` bulundu.
+
+## Gerçek Windows paket kabulü
+
+[Başarılı Windows CI çalışması](https://github.com/BerkayAtag/BeRDP/actions/runs/40738303817) kaynak commit `5858914a5551863979932c3f2c2ed5fb0b67d79a` üzerinden 4m33s içinde tamamlandı:
+
+- Server ve Client sessiz kurulumları başarılı.
+- appwiz.cpl'nin okuduğu uninstall kayıtlarında Publisher **Berkay Atağ**, DisplayVersion **1.6.0**.
+- Kurulan iki servis sağlıklı ve yalnız loopback dinliyor.
+- Kurulan API tarihsel varsayılan yönetici parolasını reddediyor.
+- Aynı sürümün yeniden kurulması JWT anahtarını koruyor ve servisleri yeniden başlatıyor.
+- Her iki kaldırma işlemi uninstall kayıtlarını ve servisleri kaldırıyor.
+
+Bu kanıt belirli bir kurumun AD, EDR/GPO veya eski veri tabanıyla yükseltme kabulünü kapsamaz. Release paketleri bu başarılı çalışmanın artifact'inden yayımlanır; `installation-verification.json` sonucu ve SHA256 manifesti birlikte sunulur.

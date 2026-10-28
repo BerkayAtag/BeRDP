@@ -6,7 +6,9 @@ BeRDP, kurum içindeki RDP makinelerini, kullanıcıları ve Active Directory gr
 
 **1.6.0 · Windows x64 · .NET 10 · MIT · Berkay Atağ**
 
-> Sürüm adayı: yerel otomatik testler tamamlandı. Gerçek AD/Kerberos, TLS uç noktası, hedef VM, kurulum/yükseltme ve geri yükleme kabul testleri kurumun pilot ortamında tamamlanmalıdır. Kod imzalama sertifikası bu projeye dahil değildir.
+[Tanıtım sayfası](https://berkayatag.github.io/BeRDP/) · [İndir](https://github.com/BerkayAtag/BeRDP/releases/tag/v1.6.0-rc.1) · [Windows kurulum testi](https://github.com/BerkayAtag/BeRDP/actions/runs/40738303817)
+
+> Sürüm adayı: yerel otomatik testler tamamlandı. Temiz Windows kurulum, yeniden kurulum ve kaldırma testleri geçti. Gerçek AD/Kerberos, kurum TLS proxy'si, hedef VM, eski sürümden yükseltme ve geri yükleme kabul testleri kurumun pilot ortamında tamamlanmalıdır. Kod imzalama sertifikası bu projeye dahil değildir.
 
 ![BeRDP makine ve erişim yönetimi](docs/ui/machines.png)
 
