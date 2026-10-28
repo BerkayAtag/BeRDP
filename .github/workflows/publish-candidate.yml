@@ -1,0 +1,52 @@
+name: Publish verified candidate
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful main-branch Validate BeRDP run ID
+        required: true
+        type: string
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_ID: ${{ inputs.run_id }}
+    steps:
+      - name: Verify run and download tested packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GH_REPO/actions/runs/$RUN_ID" > run.json
+          python3 - <<'PY'
+          import json, os
+          run = json.load(open('run.json'))
+          assert run['conclusion'] == 'success'
+          assert run['head_branch'] == 'main' and run['event'] == 'push'
+          assert run['path'] == '.github/workflows/validate.yml'
+          assert run['repository']['full_name'] == os.environ['GH_REPO']
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('SOURCE_SHA=' + run['head_sha'] + '\n')
+          PY
+          gh run download "$RUN_ID" --repo "$GH_REPO" --name BeRDP-unsigned-win-x64 --dir release-files
+          cd release-files
+          sha256sum --check SHA256SUMS.txt
+          python3 - <<'PY'
+          import json
+          results = json.load(open('installation-verification.json', encoding='utf-8-sig'))
+          assert {row['Component'] for row in results} == {'Server', 'Client'}
+          assert all(row['Publisher'] == 'Berkay Atağ' and row['Version'] == '1.6.0' for row in results)
+          PY
+      - name: Publish candidate with verified installers
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view v1.6.0-rc.1 --repo "$GH_REPO"
+          gh release upload v1.6.0-rc.1 release-files/BeRDP.Server.Setup.exe release-files/BeRDP.Client.Setup.exe release-files/SHA256SUMS.txt release-files/installation-verification.json --clobber --repo "$GH_REPO"
+          gh release edit v1.6.0-rc.1 --draft=false --prerelease --target "$SOURCE_SHA" --repo "$GH_REPO"
