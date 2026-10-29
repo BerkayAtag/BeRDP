@@ -13,7 +13,7 @@ namespace BeRdp.Backend.Controllers;
 [ApiController]
 [Route("")]
 [Authorize(Policy = "AdminOnly")]
-public class UsersController(AppDbContext dbContext) : ControllerBase
+public partial class UsersController(AppDbContext dbContext) : ControllerBase
 {
     [HttpGet("users")]
     public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetUsers(
@@ -100,6 +100,14 @@ public class UsersController(AppDbContext dbContext) : ControllerBase
             return BadRequest(new { message = "Parola UTF-8 olarak en fazla 72 byte olabilir." });
         }
         var username = request.Username.Trim().ToLowerInvariant();
+        if (!LocalUsernamePattern().IsMatch(username))
+        {
+            return BadRequest(new { message = "Kullanıcı adı 3–64 karakter olmalı; harf, rakam, nokta, tire veya alt çizgi içerebilir." });
+        }
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            return BadRequest(new { message = "Görünen ad zorunludur." });
+        }
         var exists = await dbContext.Users.AnyAsync(x => x.Username == username, cancellationToken);
         if (exists)
         {
@@ -206,8 +214,8 @@ public class UsersController(AppDbContext dbContext) : ControllerBase
             return BadRequest(new { message = "Son lokal yöneticinin yetkisi kaldırılamaz." });
         }
 
-        user.IsAdmin = request.IsAdmin;
         var grantConsole = request.CanAccessAdminConsole ?? (request.IsAdmin || user.CanAccessAdminConsole);
+        user.IsAdmin = request.IsAdmin && grantConsole;
         user.CanAccessAdminConsole = grantConsole;
         user.ConsoleRole = request.IsAdmin ? ConsoleRole.Admin : ConsoleRole.Standard;
         if (!grantConsole)
@@ -302,6 +310,10 @@ public class UsersController(AppDbContext dbContext) : ControllerBase
 
         return userPrincipalName!.Trim().ToLowerInvariant();
     }
+
+    // Local names cannot use the DOMAIN\user or user@domain forms reserved for AD identities.
+    [System.Text.RegularExpressions.GeneratedRegex("^[a-z0-9][a-z0-9._-]{2,63}$")]
+    private static partial System.Text.RegularExpressions.Regex LocalUsernamePattern();
 
     private static string? NormalizeNullable(string? value)
     {

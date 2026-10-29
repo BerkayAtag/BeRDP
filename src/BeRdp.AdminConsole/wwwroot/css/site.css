@@ -692,3 +692,100 @@ select:focus {
   line-height: 1.5;
   margin-top: 12px;
 }
+
+/* Brand, theme toggle and footer */
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.login-brand img {
+  border-radius: 10px;
+}
+
+.login-brand .brand-label {
+  flex: 1;
+}
+
+.sidebar-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-head h2 img {
+  border-radius: 8px;
+}
+
+button.theme-toggle {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  flex: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+button.theme-toggle:hover {
+  background: var(--surface-alt);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.theme-toggle .icon-sun {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle .icon-moon {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle .icon-sun {
+  display: block;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.app-footer {
+  padding: 18px 20px 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.app-root {
+  min-height: auto;
+}
+
+.login-shell {
+  min-height: calc(100vh - 60px);
+}
+
+.dashboard {
+  min-height: calc(100vh - 60px);
+}
+
+/* Layout polish: left-aligned navigation, inline filters, no empty error gap */
+.nav-link {
+  justify-content: flex-start;
+}
+
+.filter-row input,
+.filter-row select {
+  flex: 1 1 220px;
+  width: auto;
+}
+
+.filter-row button {
+  flex: none;
+}
+
+.content > .error:empty {
+  display: none;
+}

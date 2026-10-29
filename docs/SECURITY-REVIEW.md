@@ -13,6 +13,15 @@
 
 Ek düzeltmeler: native bağlantı öncesi atama yenileme, son yönetici koruması, konsol yetki kontrolü, Windows RDP izin politikalarını koruma, tema event aboneliği temizliği, aynı Windows oturumunda tek istemci, CSP ve güvenlik başlıkları.
 
+## 1.7.0 ek düzeltmeleri
+
+| Bulgu | Düzeltme | Doğrulama |
+|---|---|---|
+| Yalnız masaüstü kullanıcıları `/machines` yanıtında diğer atanmış kişi/grup adlarını görebiliyordu | Konsol yetkisi olmayan kullanıcılara atama ayrıntıları gönderilmez | Regresyon testi |
+| AD grup yönetici yetkisi konsol girişini sağlamıyordu; konsol erişimi kaldırılınca açık yönetici rolü kalabiliyordu | Grup yetkisi konsol yöneticisi sayılır; erişim kaldırma rolü de kaldırır; açıkça kapatılmış yerel konsol erişimi yeniden açılmaz | Regresyon testi |
+| Yerel kullanıcı adı `DOMAIN\kullanıcı` / `kullanıcı@domain` biçimini taklit edebiliyordu | Yerel adlar `[a-z0-9._-]` ile sınırlandı | Regresyon testi |
+| İlk yönetici için komut satırı gerekiyordu | Setup sihirbazı parolayı yalnız alt sürecin ortam değişkeniyle iletir; süreç değeri okuyunca siler | Regresyon + temiz Windows kurulum testi |
+
 ## Güven sınırları
 
 - Yerel sunucu yöneticisi, DB/anahtarlar ve servis hesabı güvenilir işletim sınırıdır.

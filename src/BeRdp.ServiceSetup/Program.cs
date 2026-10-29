@@ -189,6 +189,7 @@ void SaveConfiguration(string root, string? sso, bool testMode = false)
         x?.GetValue<string>() ?? throw new InvalidOperationException("CORS origin cannot be null.")).ToHashSet(StringComparer.OrdinalIgnoreCase)
         ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     origins.Add("http://localhost:5173");
+    origins.Add("http://127.0.0.1:5173");
     origins.Add($"http://{Environment.MachineName}:5173");
     try
     {

@@ -148,9 +148,9 @@ public sealed class ApiClient : IDisposable
         var hint = statusCode switch
         {
             HttpStatusCode.MethodNotAllowed =>
-                "Girdiğiniz adres yönetim konsolu (portal) olabilir. Masaüstü istemcisi için API adresini kullanın (ör. http://sunucu:5001).",
+                "Girdiğiniz adres yönetim konsolu (portal) olabilir. Masaüstü istemcisi için API adresini kullanın (ör. https://berdp.example.test/api).",
             HttpStatusCode.NotFound =>
-                "API uç noktası bulunamadı. Sunucu adresini kontrol edin (ör. http://sunucu:5001).",
+                "API uç noktası bulunamadı. Sunucu adresini kontrol edin (ör. https://berdp.example.test/api).",
             _ => null
         };
 

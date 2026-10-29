@@ -1,8 +1,187 @@
 <!doctype html>
-<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="BeRDP: Windows masaüstleri için merkezi RDP erişimi ve Active Directory tabanlı yetkilendirme."><title>BeRDP — Masaüstlerine tek noktadan erişim</title><link rel="stylesheet" href="site.css"><script defer src="site-config.js"></script><script defer src="site.js"></script></head>
-<body><header><a class="brand" href="#">BeRDP<span>by Berkay Atağ</span></a><nav aria-label="Ana menü"><a href="#product">Uygulama</a><a href="#deploy">Kurulum</a><a href="#download">İndir</a></nav></header>
-<main><section class="hero"><div><p class="intro">Windows masaüstleri. Merkezi erişim.</p><h1>Çalışma alanınız,<br><em>bir bağlantı uzağınızda.</em></h1><p class="lead">Makinelerinizi ve erişim atamalarınızı tek yerde yönetin. Kullanıcılarınızı bildikleri Windows masaüstüne ulaştırın. Hedef VM'lere ajan yüklemeden.</p><div class="actions"><a class="button" href="#download">BeRDP'yi edinin <span aria-hidden="true">↗</span></a><a href="INSTALLATION_GUIDE.md">Kurulum rehberi →</a></div><p class="meta">Windows x64 · .NET 10 · Açık kaynak / MIT</p></div><figure><img src="ui/login.png" alt="BeRDP'nin Windows oturumu veya kullanıcı parolasıyla giriş ekranı"><figcaption>Kurumunuzun kimliğiyle başlayın.</figcaption></figure></section>
-<section id="product" class="product"><div class="section-heading"><h2>Dağınık bağlantılar yerine<br>ortak bir çalışma alanı.</h2><p>Envanter, kullanıcılar ve AD grupları aynı konsolda. Açık ve koyu tema, sade bir günlük kullanım deneyimi.</p></div><img class="wide" src="ui/machines.png" alt="BeRDP konsolunda makine oluşturma ve kullanıcı veya grup atama ekranı" loading="lazy"><div class="features"><article><span>01</span><h3>Kimliğe bağlı erişim</h3><p>Yerel hesapları ve Active Directory gruplarını makinelere atayın. Güncel atamayı bağlantı öncesinde doğrulayın.</p></article><article><span>02</span><h3>Windows ile doğal bağlantı</h3><p>Yerleşik RDP istemcisi, çoklu ekran ve yerel kaynak seçimi. Windows'un güvenlik ve kaynak izinlerini korur.</p></article><article><span>03</span><h3>Kontrol sizin ortamınızda</h3><p>Kendi sunucunuzda barındırın. İhtiyaç halinde Apache Guacamole ile tarayıcı erişimi ekleyin.</p></article></div></section>
-<section id="deploy" class="deploy"><h2>Kendi altyapınıza<br>yerleşir.</h2><div><ol><li><strong>Sunucuyu hazırlayın.</strong><p>Server paketini kurun, kurum sertifikanızla HTTPS yayınını yapılandırın.</p></li><li><strong>Erişimi tanımlayın.</strong><p>Kendi ilk yöneticinizi oluşturun. Kullanıcı, AD grubu ve makine atamalarını ekleyin.</p></li><li><strong>İstemciyi dağıtın.</strong><p>HTTPS API adresini kurulumda belirtin. Hedef VM'lerde Windows RDP haklarını yönetin.</p></li></ol><a href="INSTALLATION_GUIDE.md">Ayrıntılı dağıtım rehberi →</a></div></section>
-<section id="download" class="download"><div><h2>BeRDP 1.6.0</h2><p>Server ve Client için ayrı Windows x64 kurulum paketleri.</p><p class="release-note">Sürüm adayı. Gerçek AD/RDP ve kurumsal kurulum kabul testlerini pilot ortamınızda tamamlayın. Paketler şu anda kod imzası içermez.</p></div><div id="releaseLinks"><a class="button" href="https://github.com/BerkayAtag/BeRDP/releases/tag/v1.6.0-rc.1">Kurulum dosyalarını indir →</a></div></section>
-</main><footer><span>© 2026 Berkay Atağ · BeRDP</span><a href="../LICENSE">MIT lisansı</a><a href="SECURITY-REVIEW.md">Güvenlik ve doğrulama</a><a href="ROADMAP.md">Yol haritası</a></footer></body></html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="BeRDP: Windows masaüstlerine merkezi, ajan gerektirmeyen RDP erişimi. Makine, kullanıcı ve Active Directory grup atamalarını tek konsoldan yönetin.">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="BeRDP — Masaüstlerine tek noktadan erişim">
+<meta property="og:description" content="Makine ve erişim atamalarını tek konsolda yönetin; kullanıcılar Windows'un kendi RDP istemcisiyle bağlansın.">
+<meta property="og:image" content="https://berkayatag.github.io/BeRDP/ui/machines.png">
+<title>BeRDP — Masaüstlerine tek noktadan erişim</title>
+<link rel="icon" type="image/png" href="assets/berdp-logo.png">
+<link rel="stylesheet" href="site.css?v=1.7.0">
+<script>
+  // Varsayılan aydınlık tema; ziyaretçinin seçimi bu tarayıcıda hatırlanır.
+  // Sayfa boyanmadan önce uygulanır, böylece tema geçişinde yanıp sönme olmaz.
+  (function () {
+    var theme = 'light';
+    try { if (localStorage.getItem('berdp.site.theme') === 'dark') theme = 'dark'; } catch (e) {}
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+</head>
+<body>
+<a class="skip" href="#main">İçeriğe geç</a>
+<header class="top">
+  <a class="brand" href="#"><img src="assets/berdp-logo.png" alt="" width="36" height="36"><span>BeRDP<small>by Berkay Atağ</small></span></a>
+  <nav aria-label="Ana menü">
+    <a href="#ozellikler">Özellikler</a>
+    <a href="#ekranlar">Ekranlar</a>
+    <a href="#kurulum">Kurulum</a>
+    <a href="#indir">İndir</a>
+    <a href="https://github.com/BerkayAtag/BeRDP">GitHub ↗</a>
+  </nav>
+  <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="Karanlık temaya geç" title="Karanlık temaya geç">
+    <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+    <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+  </button>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Sürüm 1.7.0 · Windows x64</p>
+      <h1>Çalışma alanınız,<br><em>bir bağlantı uzağınızda.</em></h1>
+      <p class="lead">BeRDP, kurumunuzdaki Windows masaüstlerini, kullanıcıları ve Active Directory grup atamalarını tek konsoldan yönetir. Kullanıcılar Windows'un kendi Uzak Masaüstü istemcisiyle bağlanır; hedef makinelere ajan kurmanız gerekmez.</p>
+      <div class="actions">
+        <a class="button" href="#indir">Kurulum dosyalarını indir <span aria-hidden="true">↓</span></a>
+        <a class="link" href="https://github.com/BerkayAtag/BeRDP#readme">Belgeleri incele →</a>
+      </div>
+      <ul class="facts">
+        <li>Tıkla-kur setup</li>
+        <li>.NET gerektirmez</li>
+        <li>Hedef VM'de ajan yok</li>
+        <li>Açık kaynak · MIT</li>
+      </ul>
+    </div>
+    <figure class="hero-shot">
+      <img src="ui/machines.png" data-light-src="ui/machines.png" data-dark-src="ui/machines-dark.png" alt="BeRDP yönetim konsolu: makine tanımlama, AD grubu ve kişi bazlı erişim seçimi, RDP erişilebilirlik durumlu makine listesi" width="1440" height="900">
+      <figcaption>Gerçek uygulama ekranı · sentetik demo verisi</figcaption>
+    </figure>
+  </section>
+
+  <section id="ozellikler" class="section">
+    <div class="section-head">
+      <p class="eyebrow">Ne yapar?</p>
+      <h2>Dağınık bağlantılar yerine<br><em>ortak bir çalışma alanı.</em></h2>
+    </div>
+    <div class="features">
+      <article>
+        <span class="num">01</span>
+        <h3>Kimliğe bağlı erişim</h3>
+        <p>Makineleri kişilere veya Active Directory gruplarına atayın. Güncel atama her bağlantıdan hemen önce sunucuda yeniden doğrulanır.</p>
+      </article>
+      <article>
+        <span class="num">02</span>
+        <h3>Windows ile doğal bağlantı</h3>
+        <p>İstemci yerleşik <code>mstsc</code> ile bağlanır: çoklu ekran, çözünürlük ve yerel kaynak seçimi. Windows'un güvenlik uyarıları korunur.</p>
+      </article>
+      <article>
+        <span class="num">03</span>
+        <h3>Active Directory ve SSO</h3>
+        <p>AD kullanıcılarını ve gruplarını konsoldan arayıp ekleyin. Kerberos ortamında Windows oturumuyla tek tıkla giriş.</p>
+      </article>
+      <article>
+        <span class="num">04</span>
+        <h3>Rol tabanlı konsol</h3>
+        <p>Tam yetkili yönetici, salt okunur konsol ve yalnız masaüstü kullanıcısı. AD grubuyla yönetici yetkisi verin; yetki değişikliği bir sonraki istekte geçerlidir.</p>
+      </article>
+      <article>
+        <span class="num">05</span>
+        <h3>Güvenli varsayılanlar</h3>
+        <p>Varsayılan parola veya demo hesap yok. Servisler yalnız loopback dinler, uzak erişim HTTPS ister, anahtarlar DPAPI ile korunur.</p>
+      </article>
+      <article>
+        <span class="num">06</span>
+        <h3>Kontrol sizin ortamınızda</h3>
+        <p>Kendi sunucunuzda barındırın. İsteğe bağlı Apache Guacamole entegrasyonu ile tarayıcıdan RDP erişimi ekleyin.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="ekranlar" class="section">
+    <div class="section-head">
+      <p class="eyebrow">Güncel tasarım</p>
+      <h2>Aydınlık ya da karanlık,<br>sade ve okunaklı.</h2>
+    </div>
+    <div class="gallery">
+      <figure class="wide"><img src="ui/authorization.png" data-light-src="ui/authorization.png" data-dark-src="ui/authorization-dark.png" alt="Yetkilendirme ekranı: kişisel ve AD grup bazlı yönetici yetkileri" loading="lazy" width="1440" height="900"><figcaption>Yetkilendirme — tam yetkili yönetici, salt okunur konsol ve AD grup bazlı yönetici yetkisi.</figcaption></figure>
+      <figure><img src="ui/overview.png" data-light-src="ui/overview.png" data-dark-src="ui/overview-dark.png" alt="Genel bakış: kullanıcı, makine, yönetici AD grubu ve AD durumu sayaçları" loading="lazy" width="1440" height="900"><figcaption>Genel bakış</figcaption></figure>
+      <figure><img src="ui/machines-dark.png" data-light-src="ui/machines-dark.png" data-dark-src="ui/machines.png" data-light-alt="Koyu temada yönetim konsolu" data-dark-alt="Aydınlık temada yönetim konsolu" alt="Koyu temada yönetim konsolu" loading="lazy" width="1440" height="900"><figcaption data-light-text="Konsolda koyu tema" data-dark-text="Konsolda aydınlık tema">Konsolda koyu tema</figcaption></figure>
+      <figure><img src="ui/users.png" data-light-src="ui/users.png" data-dark-src="ui/users-dark.png" alt="Domain kullanıcıları listesi" loading="lazy" width="1440" height="900"><figcaption>Domain kullanıcıları</figcaption></figure>
+      <figure><img src="ui/login.png" data-light-src="ui/login.png" data-dark-src="ui/login-dark.png" alt="Windows oturumu veya parola ile giriş ekranı" loading="lazy" width="1440" height="900"><figcaption>Giriş: Windows oturumu veya parola</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="kurulum" class="section install">
+    <div>
+      <p class="eyebrow">Kurulum</p>
+      <h2>İki setup,<br>birkaç tık.</h2>
+      <p class="muted">Her iki kurulum da self-contained'dir; hedef makinede .NET gerekmez. Programlar ve Özellikler'de yayıncı <strong>Berkay Atağ</strong> olarak, kırmızı BeRDP simgesiyle görünür.</p>
+    </div>
+    <ol class="steps">
+      <li><strong>Sunucuyu kurun.</strong><p><code>BeRDP.Server.Setup.exe</code> dosyasını çift tıklayın, ilk yönetici kullanıcı adı ve parolasını girip <em>Kur</em>'a basın. Kurulum bitince yönetim konsolu açılır.</p></li>
+      <li><strong>Erişimi tanımlayın.</strong><p>Konsolda makineleri ekleyin; kişileri veya AD gruplarını atayın. Kurumsal kullanım için servisleri kendi sertifikanızla HTTPS reverse proxy arkasında yayınlayın.</p></li>
+      <li><strong>İstemciyi dağıtın.</strong><p><code>BeRDP.Client.Setup.exe</code> sunucu adresini sorar; sessiz dağıtım için <code>/VERYSILENT /BACKENDURL="https://berdp.example.test/api"</code> kullanın.</p></li>
+    </ol>
+  </section>
+
+  <section id="indir" class="section download">
+    <div>
+      <h2>BeRDP 1.7.0</h2>
+      <p class="muted">Sunucu ve istemci için ayrı Windows x64 kurulum dosyaları, SHA-256 özetleriyle. Paketler temiz Windows ortamında kurulum, yeniden kurulum ve kaldırma testinden geçtikten sonra yayımlanır.</p>
+      <p class="note">Kurulum dosyaları Authenticode ile imzalı değildir; SmartScreen uyarısında "Ek bilgi → Yine de çalıştır" seçin. Kurum dağıtımında kendi kod imzalama sertifikanızı kullanın.</p>
+    </div>
+    <div class="download-links">
+      <a class="button" href="https://github.com/BerkayAtag/BeRDP/releases/latest/download/BeRDP.Server.Setup.exe">Sunucu kurulumu <span aria-hidden="true">↓</span></a>
+      <a class="button secondary" href="https://github.com/BerkayAtag/BeRDP/releases/latest/download/BeRDP.Client.Setup.exe">İstemci kurulumu <span aria-hidden="true">↓</span></a>
+      <a class="link" href="https://github.com/BerkayAtag/BeRDP/releases/latest">Sürüm notları ve SHA-256 →</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>© 2026 Berkay Atağ · BeRDP</span>
+  <a href="https://github.com/BerkayAtag/BeRDP">GitHub</a>
+  <a href="https://github.com/BerkayAtag/BeRDP/blob/main/LICENSE">MIT lisansı</a>
+  <a href="https://github.com/BerkayAtag/BeRDP/blob/main/SECURITY.md">Güvenlik</a>
+  <a href="https://github.com/BerkayAtag/BeRDP/blob/main/CHANGELOG.md">Değişiklikler</a>
+</footer>
+<script>
+  (function () {
+    var root = document.documentElement;
+    var button = document.getElementById('theme-toggle');
+
+    function apply(theme) {
+      var dark = theme === 'dark';
+      root.setAttribute('data-theme', theme);
+      var label = dark ? 'Aydınlık temaya geç' : 'Karanlık temaya geç';
+      button.setAttribute('aria-pressed', String(dark));
+      button.setAttribute('aria-label', label);
+      button.setAttribute('title', label);
+
+      // Ekran görüntüleri ve açıklamaları seçilen temaya göre değişir.
+      var mode = dark ? 'dark' : 'light';
+      document.querySelectorAll('img[data-light-src]').forEach(function (img) {
+        var src = img.getAttribute('data-' + mode + '-src');
+        if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+        var alt = img.getAttribute('data-' + mode + '-alt');
+        if (alt) img.setAttribute('alt', alt);
+      });
+      document.querySelectorAll('[data-light-text]').forEach(function (el) {
+        el.textContent = el.getAttribute('data-' + mode + '-text');
+      });
+    }
+
+    apply(root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
+
+    button.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      apply(next);
+      try { localStorage.setItem('berdp.site.theme', next); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>

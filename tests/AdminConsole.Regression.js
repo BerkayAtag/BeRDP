@@ -25,7 +25,7 @@ window.runBeRdpAdminRegression = async function () {
       return reply(503, { message: "Sunucuda Windows SSO etkin değil." });
     }
     if (path === "/login/windows" || (path === "/login" && mode === "domain-user")) return reply(200, {
-      userId: "regression-domain", username: "aknet.akb\\sam",
+      userId: "regression-domain", username: "corp.example\\sam",
       displayName: "Domain User", isAdmin: false, canAccessAdminConsole: true, consoleRole: "Standard", isActiveDirectoryUser: true, token: "domain-only-token"
     });
     if (path === "/login") return reply(200, {
@@ -34,12 +34,12 @@ window.runBeRdpAdminRegression = async function () {
     });
     if (path === "/machines") return reply(200, [{
       id: "regression-machine", name: "<VM & Domain>", ipAddress: "192.0.2.10",
-      rdpHostName: "vm01.aknet.akb", rdpPort: 3389, isOnline: true
+      rdpHostName: "vm01.corp.example", rdpPort: 3389, isOnline: true
     }]);
     if (path === "/admin/machines/regression-machine") return reply(200, {
-      name: "Test VM", ipAddress: "192.0.2.10", rdpHostName: "vm01.aknet.akb", rdpPort: 3389,
-      entitledUsers: [{ userId: "regression-domain", username: "sam@aknet.akb", displayName: "Domain User" }],
-      entitledAdGroups: [{ groupName: "vdi", domainName: "aknet.akb" }]
+      name: "Test VM", ipAddress: "192.0.2.10", rdpHostName: "vm01.corp.example", rdpPort: 3389,
+      entitledUsers: [{ userId: "regression-domain", username: "sam@corp.example", displayName: "Domain User" }],
+      entitledAdGroups: [{ groupName: "vdi", domainName: "corp.example" }]
     });
     if (path === "/machines/regression-machine") return reply(200, { id: "regression-machine" });
     if (path === "/machines/regression-machine/browser-session") {
@@ -60,18 +60,18 @@ window.runBeRdpAdminRegression = async function () {
     if (path === "/ad/test") return reply(200, { message: "Regresyon bağlantısı başarılı." });
     if (path === "/account/password") return reply(200, { message: "Parola değiştirildi. Yeniden giriş yapın." });
     if (path === "/ad/config") return reply(200, {
-      enabled: true, domainName: "aknet.akb", ldapContainer: "OU=BTPersonel,OU=Aknet,DC=aknet,DC=akb",
+      enabled: true, domainName: "corp.example", ldapContainer: "OU=Staff,OU=Corp,DC=corp,DC=example",
       useMachineCredentials: true, hasBindPassword: false
     });
     if (path === "/admin/access-groups") return reply(200, []);
     if (path === "/admin/users") return reply(200, {
-      items: [{ id: "regression-domain", username: "sam@aknet.akb", displayName: "Domain User",
-        isActiveDirectoryUser: true, isAdmin: false, domainName: "aknet.akb" }],
+      items: [{ id: "regression-domain", username: "sam@corp.example", displayName: "Domain User",
+        isActiveDirectoryUser: true, isAdmin: false, domainName: "corp.example" }],
       totalCount: 1, page: 1, pageSize: 100
     });
     if (path === "/admin/machines") return reply(200, {
       items: [{ id: "regression-machine", name: "Test VM", ipAddress: "192.0.2.10",
-        rdpHostName: "vm01.aknet.akb", rdpPort: 3389, isOnline: true }],
+        rdpHostName: "vm01.corp.example", rdpPort: 3389, isOnline: true }],
       totalCount: 1, page: 1, pageSize: 150
     });
     return reply(200, { items: [], totalCount: 0, page: 1, pageSize: path === "/admin/machines" ? 150 : 100 });
@@ -87,7 +87,7 @@ window.runBeRdpAdminRegression = async function () {
     check(!!state.token && !ui.dashboardView.classList.contains("hidden"), "Admin login opens the dashboard");
     check(ui.passwordInput.value === "", "Login password is cleared");
     check(calls.filter(call => call.path !== "/login").every(call => call.authorized), "Protected requests carry Authorization");
-    check(ui.adDomainInput.value === "aknet.akb" && ui.adContainerInput.value.includes("BTPersonel"), "AD settings populate correctly");
+    check(ui.adDomainInput.value === "corp.example" && ui.adContainerInput.value.includes("Staff"), "AD settings populate correctly");
     check(ui.adBindPasswordInput.disabled, "Machine credentials disable bind inputs");
     await onTestAdConfig();
     check(ui.adConfigInfo.textContent === "Regresyon bağlantısı başarılı.", "AD test success is surfaced");
@@ -135,7 +135,7 @@ window.runBeRdpAdminRegression = async function () {
     }
     onLogout();
     mode = "domain-user";
-    ui.usernameInput.value = "sam@aknet.akb";
+    ui.usernameInput.value = "sam@corp.example";
     ui.passwordInput.value = "regression-only-password";
     const beforeDomain = calls.length;
     await onLoginSubmit({ preventDefault() {} });
@@ -171,7 +171,7 @@ window.runBeRdpAdminRegression = async function () {
       "Machine editor is attached to machine cards, not user cards");
     await editMachine("regression-machine");
     check(state.selectedMachineUsers.size === 1 && state.selectedMachineGroups.size === 1 &&
-      ui.newMachineRdpHostName.value === "vm01.aknet.akb", "Editor loads DNS and existing entitlements");
+      ui.newMachineRdpHostName.value === "vm01.corp.example", "Editor loads DNS and existing entitlements");
     await onCreateMachine({ preventDefault() {} });
     const update = calls.findLast(call => call.path === "/machines/regression-machine");
     check(update.method === "PUT" && JSON.parse(update.body).entitledUserIds[0] === "regression-domain",
@@ -186,7 +186,7 @@ window.runBeRdpAdminRegression = async function () {
     const resolveOldDesktop = resolvePending;
     onLogout();
     mode = "domain-user";
-    ui.usernameInput.value = "sam@aknet.akb";
+    ui.usernameInput.value = "sam@corp.example";
     ui.passwordInput.value = "test-only";
     await onLoginSubmit({ preventDefault() {} });
     check(ui.desktopList.textContent.includes("<VM & Domain>"),
@@ -204,7 +204,7 @@ window.runBeRdpAdminRegression = async function () {
     check(calls.length === beforeDoubleLogin + 1,
       "Password login and Windows SSO cannot submit concurrently");
     resolvePending(reply(200, {
-      userId: "regression-domain", username: "sam@aknet.akb", displayName: "Domain",
+      userId: "regression-domain", username: "sam@corp.example", displayName: "Domain",
       isAdmin: false, canAccessAdminConsole: true, consoleRole: "Standard", isActiveDirectoryUser: true, token: "test-only-token"
     }));
     mode = "domain-user";

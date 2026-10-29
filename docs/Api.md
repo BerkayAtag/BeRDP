@@ -75,6 +75,8 @@ Filtre parametreleri:
   döndürür. Standart kullanıcı bu parametre olmadan da daima filtrelenir.
 
 Response alanlarında `assignedUserCount` yanında `assignedAdGroupCount` da döner.
+Atama sayıları ve atanmış kullanıcı/grup adları yalnız konsol yetkisi olan
+kullanıcılara gönderilir; yalnız masaüstü kullanıcıları için bu alanlar boştur.
 `rdpHostName`, Windows SSO için kullanılan tam DNS adıdır; `ipAddress` TCP
 erişilebilirlik kontrolünde kullanılır.
 
@@ -149,7 +151,9 @@ Kullanıcı listesi (filter + segment desteği):
 
 ### `POST /users` (Admin)
 
-Lokal kullanıcı ekler.
+Lokal kullanıcı ekler. Kullanıcı adı 3–64 karakterdir ve yalnız harf, rakam,
+nokta, tire veya alt çizgi içerir (`DOMAIN\kullanıcı` ve UPN biçimleri AD
+hesaplarına ayrılmıştır). Parola en az 14 karakterdir.
 
 ### `POST /users/ad` (Admin)
 

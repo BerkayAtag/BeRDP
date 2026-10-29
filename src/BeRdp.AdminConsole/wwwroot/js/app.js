@@ -47,9 +47,10 @@ const ui = {
 
   refreshButton: document.getElementById("refreshButton"),
   logoutButton: document.getElementById("logoutButton"),
-  themeToggleButton: document.getElementById("themeToggleButton"),
+  themeToggleButtons: Array.from(document.querySelectorAll("[data-theme-toggle]")),
 
   totalUsersStat: document.getElementById("totalUsersStat"),
+  // Overview counts every user, independent of the Users page source filter.
   totalMachinesStat: document.getElementById("totalMachinesStat"),
   adminGroupsStat: document.getElementById("adminGroupsStat"),
   adStatusStat: document.getElementById("adStatusStat"),
@@ -127,6 +128,7 @@ const state = {
   sessionGeneration: 0,
   profile: null,
   activePage: "overview",
+  totalUserCount: 0,
   isConsoleAdmin: false,
   adConfig: null,
   adUserSearchResults: [],
@@ -164,7 +166,6 @@ initialize();
 
 function initialize() {
   applyTheme(loadSavedTheme());
-  updateThemeButtonLabel();
 
   ui.navLinks.forEach(link => {
     link.addEventListener("click", () => {
@@ -187,7 +188,7 @@ function initialize() {
   ui.changePasswordForm.addEventListener("submit", onChangePassword);
   ui.logoutButton.addEventListener("click", onLogout);
   ui.refreshButton.addEventListener("click", () => runSafely(refreshAll));
-  ui.themeToggleButton.addEventListener("click", onToggleTheme);
+  ui.themeToggleButtons.forEach(button => button.addEventListener("click", onToggleTheme));
 
   ui.downloadClientButton.addEventListener("click", onDownloadClientSetup);
 
@@ -359,6 +360,9 @@ function onLogout() {
   ui.usersSourceFilter.value = "ad";
   ui.desktopList.replaceChildren();
   state.desktops.page = 1;
+  state.desktops.search = "";
+  ui.desktopsFilterInput.value = "";
+  state.totalUserCount = 0;
   ui.createUserForm.reset();
   document.querySelectorAll("[data-admin-only]").forEach(element => element.classList.add("hidden"));
   document.querySelectorAll("[data-console-admin-only]").forEach(element => element.classList.add("hidden"));
@@ -419,7 +423,7 @@ function clearDynamicLists() {
 }
 
 async function refreshAll() {
-  if (!state.profile?.isAdmin || state.activePage === "desktops") {
+  if (!state.isConsoleAdmin || state.activePage === "desktops") {
     await loadDesktops();
     return;
   }
@@ -428,7 +432,8 @@ async function refreshAll() {
     loadUsers(),
     loadAuthUsers(),
     loadMachines(),
-    loadAdminAccessGroups()
+    loadAdminAccessGroups(),
+    loadUserTotal()
   ]);
 
   renderOverview();
@@ -588,9 +593,14 @@ async function onCreateLocalUser(event) {
     });
 
     ui.createUserForm.reset();
-    await Promise.all([loadUsers(), loadAuthUsers()]);
+    await Promise.all([loadUsers(), loadAuthUsers(), loadUserTotal()]);
     renderOverview();
   });
+}
+
+async function loadUserTotal() {
+  const response = await apiRequest(`/admin/users?${toQueryString({ page: 1, pageSize: 10 })}`);
+  state.totalUserCount = response.totalCount ?? 0;
 }
 
 async function loadUsers() {
@@ -660,6 +670,7 @@ function renderUsers() {
       deleteButton.className = "danger";
       deleteButton.textContent = "Kullanıcıyı Sil";
       deleteButton.addEventListener("click", () => runSafely(async () => {
+        if (!window.confirm(`${user.displayName} (${user.username}) silinsin mi? Bu kullanıcının bireysel makine atamaları da kaldırılır.`)) return;
         await deleteUser(user.id);
       }));
       actionRow.appendChild(deleteButton);
@@ -684,7 +695,7 @@ async function deleteUser(userId) {
     renderSelectedMachineUsers();
   }
 
-  await Promise.all([loadUsers(), loadAuthUsers()]);
+  await Promise.all([loadUsers(), loadAuthUsers(), loadUserTotal()]);
   renderOverview();
 }
 
@@ -772,6 +783,7 @@ function renderAuthorizationUsers() {
     revokeButton.textContent = "Konsol Erişimini Kaldır";
     revokeButton.disabled = !user.canAccessAdminConsole;
     revokeButton.addEventListener("click", () => runSafely(async () => {
+      if (!window.confirm(`${user.displayName} kullanıcısının yönetim konsolu erişimi kaldırılsın mı?`)) return;
       await updateUserRole(user.id, false, false);
     }));
     actions.appendChild(revokeButton);
@@ -872,6 +884,7 @@ function renderAdminAccessGroups() {
     removeButton.className = "danger";
     removeButton.textContent = "Kaldır";
     removeButton.addEventListener("click", () => runSafely(async () => {
+      if (!window.confirm(`${title.textContent} grubunun yönetici yetkisi kaldırılsın mı?`)) return;
       await apiRequest(`/admin/access-groups/${group.id}`, { method: "DELETE" });
       await loadAdminAccessGroups();
       renderOverview();
@@ -967,7 +980,9 @@ function renderMachines() {
     deleteButton.className = "danger";
     deleteButton.textContent = "Makineyi Sil";
     deleteButton.addEventListener("click", () => runSafely(async () => {
+      if (!window.confirm(`${machine.name} makinesi ve tüm erişim atamaları silinsin mi?`)) return;
       await apiRequest(`/machines/${machine.id}`, { method: "DELETE" });
+      if (state.editingMachineId === machine.id) resetMachineEditor();
       await loadMachines();
       renderOverview();
     }));
@@ -1349,7 +1364,7 @@ function renderAdUserSearchResults() {
         }
       });
 
-      await Promise.all([loadUsers(), loadAuthUsers()]);
+      await Promise.all([loadUsers(), loadAuthUsers(), loadUserTotal()]);
       renderOverview();
     }));
     top.appendChild(addButton);
@@ -1371,40 +1386,43 @@ function syncAdCredentialInputsState() {
 }
 
 function renderOverview() {
-  ui.totalUsersStat.textContent = String(state.users.totalCount ?? 0);
+  ui.totalUsersStat.textContent = String(state.totalUserCount ?? 0);
   ui.totalMachinesStat.textContent = String(state.machines.totalCount ?? 0);
   ui.adminGroupsStat.textContent = String(state.adminAccessGroups.length);
   ui.adStatusStat.textContent = state.adConfig?.enabled ? "Aktif" : "Pasif";
 }
 
 function onToggleTheme() {
-  const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
-  const next = current === "dark" ? "light" : "dark";
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   applyTheme(next);
   saveTheme(next);
-  updateThemeButtonLabel();
 }
 
 function loadSavedTheme() {
-  const saved = localStorage.getItem(THEME_STORAGE_KEY);
-  if (saved === "light" || saved === "dark") {
-    return saved;
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) === "dark" ? "dark" : "light";
+  } catch {
+    return "light";
   }
-
-  return "light";
 }
 
 function saveTheme(theme) {
-  localStorage.setItem(THEME_STORAGE_KEY, theme);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    // Storage can be blocked by policy; the theme still applies for this page.
+  }
 }
 
 function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-}
-
-function updateThemeButtonLabel() {
-  const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
-  ui.themeToggleButton.textContent = current === "dark" ? "Aydınlık Tema" : "Karanlık Tema";
+  const dark = theme === "dark";
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  const label = dark ? "Aydınlık temaya geç" : "Karanlık temaya geç";
+  ui.themeToggleButtons.forEach(button => {
+    button.setAttribute("aria-pressed", String(dark));
+    button.setAttribute("aria-label", label);
+    button.title = label;
+  });
 }
 
 async function changePage(pageState, step, loadAction) {

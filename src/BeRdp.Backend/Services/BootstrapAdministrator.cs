@@ -38,8 +38,18 @@ public static class BootstrapAdministrator
         transaction.Commit();
     }
 
+    // Server Setup passes the password collected on its wizard page through this
+    // process-private variable so it never appears on a command line or in a file.
+    public const string SetupPasswordVariable = "BERDP_SETUP_ADMIN_PASSWORD";
+
     public static string ReadPassword()
     {
+        var setupPassword = Environment.GetEnvironmentVariable(SetupPasswordVariable);
+        if (!string.IsNullOrEmpty(setupPassword))
+        {
+            Environment.SetEnvironmentVariable(SetupPasswordVariable, null);
+            return setupPassword;
+        }
         if (Console.IsInputRedirected)
             return Console.ReadLine() ?? throw new InvalidOperationException("Standart girdiden parola okunamadı.");
         Console.Write("Yeni yönetici parolası: ");

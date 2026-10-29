@@ -1,4 +1,4 @@
-name: Publish verified candidate
+name: Publish verified release
 on:
   workflow_dispatch:
     inputs:
@@ -6,6 +6,15 @@ on:
         description: Successful main-branch Validate BeRDP run ID
         required: true
         type: string
+      tag:
+        description: Release tag, for example v1.7.0
+        required: true
+        type: string
+      prerelease:
+        description: Mark the GitHub release as a pre-release
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: write
   actions: read
@@ -17,12 +26,20 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       RUN_ID: ${{ inputs.run_id }}
+      TAG: ${{ inputs.tag }}
+      PRERELEASE: ${{ inputs.prerelease }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Verify run and download tested packages
         shell: bash
         run: |
           set -euo pipefail
           [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]
+          VERSION="${TAG#v}"
+          echo "VERSION=${VERSION%%-*}" >> "$GITHUB_ENV"
           gh api "repos/$GH_REPO/actions/runs/$RUN_ID" > run.json
           python3 - <<'PY'
           import json, os
@@ -38,15 +55,25 @@ jobs:
           cd release-files
           sha256sum --check SHA256SUMS.txt
           python3 - <<'PY'
-          import json
+          import json, os
+          version = os.environ['VERSION']
           results = json.load(open('installation-verification.json', encoding='utf-8-sig'))
           assert {row['Component'] for row in results} == {'Server', 'Client'}
-          assert all(row['Publisher'] == 'Berkay Atağ' and row['Version'] == '1.6.0' for row in results)
+          assert all(row['Publisher'] == 'Berkay Atağ' and row['Version'] == version for row in results)
+          assert all(row.get('DisplayIcon') for row in results)
           PY
-      - name: Publish candidate with verified installers
+      - name: Publish release with verified installers
         shell: bash
         run: |
           set -euo pipefail
-          gh release view v1.6.0-rc.1 --repo "$GH_REPO"
-          gh release upload v1.6.0-rc.1 release-files/BeRDP.Server.Setup.exe release-files/BeRDP.Client.Setup.exe release-files/SHA256SUMS.txt release-files/installation-verification.json --clobber --repo "$GH_REPO"
-          gh release edit v1.6.0-rc.1 --draft=false --prerelease --target "$SOURCE_SHA" --repo "$GH_REPO"
+          files=(release-files/BeRDP.Server.Setup.exe release-files/BeRDP.Client.Setup.exe release-files/SHA256SUMS.txt release-files/installation-verification.json)
+          notes="docs/releases/$TAG.md"
+          [[ -f "$notes" ]]
+          flags=(--target "$SOURCE_SHA" --title "BeRDP $VERSION" --notes-file "$notes")
+          if [[ "$PRERELEASE" == "true" ]]; then flags+=(--prerelease); else flags+=(--latest); fi
+          if gh release view "$TAG" --repo "$GH_REPO" > /dev/null 2>&1; then
+            gh release upload "$TAG" "${files[@]}" --clobber --repo "$GH_REPO"
+            gh release edit "$TAG" --draft=false "${flags[@]}" --repo "$GH_REPO"
+          else
+            gh release create "$TAG" "${files[@]}" "${flags[@]}" --repo "$GH_REPO"
+          fi

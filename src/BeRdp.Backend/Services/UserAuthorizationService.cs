@@ -33,6 +33,16 @@ public sealed class UserAuthorizationService(AppDbContext dbContext)
             : $"{grant.DomainName}\\{grant.GroupName}"));
     }
 
+    /// <summary>
+    /// An AD group admin grant also opens the console with full rights; explicit
+    /// per-user console settings are kept for everyone else.
+    /// </summary>
+    public static (bool CanAccess, ConsoleRole Role) EffectiveConsoleAccess(User user, bool effectiveIsAdmin)
+    {
+        var groupGranted = effectiveIsAdmin && !user.IsAdmin;
+        return (user.CanAccessAdminConsole || groupGranted, groupGranted ? ConsoleRole.Admin : user.ConsoleRole);
+    }
+
     public bool CanAccessAdminConsole(User user)
     {
         return user.CanAccessAdminConsole;

@@ -37,16 +37,16 @@ void ExpectInvalid(Action action, string message)
     throw new InvalidOperationException("Expected rejection: " + message);
 }
 
-Check(ActiveDirectoryLdapPath.Validate("aknet.akb", "OU=BTPersonel, OU=Aknet, DC=aknet, DC=akb") is null,
-    "AKNET OU accepts spaces after separators");
-Check(ActiveDirectoryLdapPath.Validate("aknet.akb", @"OU=Team\, A,OU=Aknet,DC=aknet,DC=akb") is null,
+Check(ActiveDirectoryLdapPath.Validate("corp.example", "OU=Staff, OU=Corp, DC=corp, DC=example") is null,
+    "CORP OU accepts spaces after separators");
+Check(ActiveDirectoryLdapPath.Validate("corp.example", @"OU=Team\, A,OU=Corp,DC=corp,DC=example") is null,
     "Escaped commas in OU names are accepted");
-Check(ActiveDirectoryLdapPath.Validate("aknet.akb", "OU=People,DC=wrong,DC=local") is not null,
+Check(ActiveDirectoryLdapPath.Validate("corp.example", "OU=People,DC=wrong,DC=local") is not null,
     "OU outside configured domain is rejected");
-Check(ActiveDirectoryLdapPath.Validate("aknet.akb", "LDAP://") is not null,
+Check(ActiveDirectoryLdapPath.Validate("corp.example", "LDAP://") is not null,
     "Empty LDAP URL is rejected");
-var ldapPath = ActiveDirectoryLdapPath.Resolve("aknet.akb", "LDAP://dc01.aknet.akb/OU=BTPersonel,DC=aknet,DC=akb");
-Check(ldapPath.Server == "dc01.aknet.akb" && ldapPath.DistinguishedName.StartsWith("OU=BTPersonel"),
+var ldapPath = ActiveDirectoryLdapPath.Resolve("corp.example", "LDAP://dc01.corp.example/OU=Staff,DC=corp,DC=example");
+Check(ldapPath.Server == "dc01.corp.example" && ldapPath.DistinguishedName.StartsWith("OU=Staff"),
     "LDAP URL resolves server and DN consistently");
 
 using var database = new SqliteConnection("Data Source=:memory:");
@@ -58,6 +58,18 @@ Check(!context.Users.Any() && !context.Machines.Any(), "Production startup has n
 BootstrapAdministrator.Create(context, "initial-admin", "Unique-regression-password!");
 Check(context.Users.Single().IsAdmin && context.Users.Single().CanAccessAdminConsole, "Explicit bootstrap creates an authorized administrator");
 ExpectInvalid(() => BootstrapAdministrator.Create(context, "another-admin", "Unique-regression-password!"), "Bootstrap cannot run against existing users");
+Environment.SetEnvironmentVariable(BootstrapAdministrator.SetupPasswordVariable, "Setup-wizard-password-123");
+Check(BootstrapAdministrator.ReadPassword() == "Setup-wizard-password-123" &&
+      Environment.GetEnvironmentVariable(BootstrapAdministrator.SetupPasswordVariable) is null,
+    "Setup wizard password is read once and cleared from the process environment");
+var groupAdmin = new User { Username = "group-admin", DisplayName = "Group Admin", IsActiveDirectoryUser = true };
+Check(UserAuthorizationService.EffectiveConsoleAccess(groupAdmin, effectiveIsAdmin: true) == (true, ConsoleRole.Admin),
+    "AD group admin grant opens the console with full rights");
+Check(UserAuthorizationService.EffectiveConsoleAccess(groupAdmin, effectiveIsAdmin: false) == (false, ConsoleRole.Standard),
+    "Users without a grant keep their explicit console settings");
+var quarantinedAdmin = new User { Username = "old-admin", DisplayName = "Old", IsAdmin = true, CanAccessAdminConsole = false };
+Check(!UserAuthorizationService.EffectiveConsoleAccess(quarantinedAdmin, effectiveIsAdmin: true).CanAccess,
+    "Explicitly revoked local console access is not re-enabled by the admin flag");
 context.Users.RemoveRange(context.Users);
 context.SaveChanges();
 DemoFixture.Initialize(context);
@@ -121,9 +133,9 @@ var directoryConfig = new ActiveDirectoryConfigurationService(context, configura
 await directoryConfig.SaveAsync(new ActiveDirectoryConfiguration
 {
     Enabled = true,
-    DomainName = "aknet.akb",
+    DomainName = "corp.example",
     UseMachineCredentials = false,
-    BindUsername = "bind@aknet.akb",
+    BindUsername = "bind@corp.example",
     BindPassword = " pass with spaces "
 }, CancellationToken.None);
 var saved = await directoryConfig.GetAsync(CancellationToken.None);
@@ -148,7 +160,7 @@ context.SaveChanges();
 Check(!await validator.ValidateAsync(principal, CancellationToken.None), "Changed security stamp revokes old session");
 
 var directorySessionUser = new User { Username = "ad-validation", IsActiveDirectoryUser = true,
-    DomainName = "aknet.akb", UserPrincipalName = "ad-validation@aknet.akb" };
+    DomainName = "corp.example", UserPrincipalName = "ad-validation@corp.example" };
 context.Users.Add(directorySessionUser);
 context.SaveChanges();
 var directoryPrincipal = new ClaimsPrincipal(new ClaimsIdentity([
@@ -217,7 +229,7 @@ var clone = displayOptions.Clone();
 clone.SelectedMonitorDevices.Clear();
 Check(displayOptions.SelectedMonitorDevices.Count == 1, "Saved options clone is independent");
 Check(RdpProfileWriter.Endpoint("2001:db8::1", 3390) == "[2001:db8::1]:3390", "IPv6 RDP endpoint is bracketed");
-var profile = RdpProfileWriter.Build("192.0.2.1", 3389, @"AKNET\test", displayOptions, monitors);
+var profile = RdpProfileWriter.Build("192.0.2.1", 3389, @"CORP\test", displayOptions, monitors);
 Check(profile.Contains("session bpp:i:32") &&
     profile.Contains("redirectclipboard:i:1"), "RDP profile keeps modern graphics and resource redirects");
 Check(profile.Contains("connection type:i:3") && profile.Contains("networkautodetect:i:0") &&
@@ -271,30 +283,30 @@ var resolvedApi = await BackendEndpointResolver.ResolveAsync(
     CancellationToken.None);
 Check(!resolvedApi.WasCorrected && resolvedApi.Notice is null,
     "A valid backend address is left unchanged");
-var ssoProfile = RdpProfileWriter.Build("vm01.aknet.akb", 3389, "upn@aknet.akb", displayOptions, monitors, true);
-var promptProfile = RdpProfileWriter.Build("vm01.aknet.akb", 3389, @"AKNET\sam123", displayOptions, monitors, false, true);
+var ssoProfile = RdpProfileWriter.Build("vm01.corp.example", 3389, "upn@corp.example", displayOptions, monitors, true);
+var promptProfile = RdpProfileWriter.Build("vm01.corp.example", 3389, @"CORP\sam123", displayOptions, monitors, false, true);
 Check(promptProfile.Contains("prompt for credentials:i:1") &&
-    promptProfile.Contains(@"username:s:AKNET\sam123") &&
+    promptProfile.Contains(@"username:s:CORP\sam123") &&
     promptProfile.Contains("redirectsmartcards:i:0") &&
     promptProfile.Contains("redirectwebauthn:i:0"),
     "Prompt profile instructs mstsc to prompt domain credentials and blocks Windows Hello PIN hijacking");
-Check(ssoProfile.Contains("full address:s:vm01.aknet.akb") &&
+Check(ssoProfile.Contains("full address:s:vm01.corp.example") &&
     ssoProfile.Contains("enablecredsspsupport:i:1") && !ssoProfile.Contains("password 51"),
     "SSO profile keeps DNS and NLA without embedding a password");
-ExpectInvalid(() => RdpProfileWriter.Build("192.0.2.1", 3389, "upn@aknet.akb", displayOptions, monitors, true),
+ExpectInvalid(() => RdpProfileWriter.Build("192.0.2.1", 3389, "upn@corp.example", displayOptions, monitors, true),
     "SSO rejects IPv4 instead of falling back to NTLM");
-ExpectInvalid(() => RdpProfileWriter.Build("2001:db8::1", 3389, "upn@aknet.akb", displayOptions, monitors, true),
+ExpectInvalid(() => RdpProfileWriter.Build("2001:db8::1", 3389, "upn@corp.example", displayOptions, monitors, true),
     "SSO rejects IPv6");
-ExpectInvalid(() => RdpProfileWriter.Build("localhost", 3389, "upn@aknet.akb", displayOptions, monitors, true),
+ExpectInvalid(() => RdpProfileWriter.Build("localhost", 3389, "upn@corp.example", displayOptions, monitors, true),
     "SSO rejects localhost");
 var directoryUser = new ActiveDirectoryDirectoryUser
 {
-    SamAccountName = "sam123", DomainName = "aknet.akb", DisplayName = "Domain Test",
+    SamAccountName = "sam123", DomainName = "corp.example", DisplayName = "Domain Test",
     UserPrincipalName = "different.upn@staff.example", Sid = "S-1-5-21-1-2-3-1001"
 };
 var imported = new BeRdp.Backend.Models.User
 {
-    Username = @"aknet.akb\sam123", DomainName = "AKNET.AKB", IsActiveDirectoryUser = true,
+    Username = @"corp.example\sam123", DomainName = "CORP.EXAMPLE", IsActiveDirectoryUser = true,
     UserPrincipalName = "DIFFERENT.UPN@STAFF.EXAMPLE"
 };
 Check(ActiveDirectoryIdentity.Matches(imported, directoryUser),
@@ -303,11 +315,11 @@ imported.UserPrincipalName = "wrong@staff.example";
 Check(!ActiveDirectoryIdentity.Matches(imported, directoryUser), "Conflicting imported UPN is rejected");
 imported.UserPrincipalName = null;
 Check(ActiveDirectoryIdentity.Matches(imported, directoryUser), "Legacy canonical SAM import can match without UPN");
-imported.DomainName = "AKNET";
+imported.DomainName = "CORP";
 Check(ActiveDirectoryIdentity.Matches(imported, directoryUser), "Windows SSO accepts a stored NetBIOS domain alias");
-imported.DomainName = "untrusted.akb";
+imported.DomainName = "untrusted.example";
 Check(!ActiveDirectoryIdentity.Matches(imported, directoryUser), "Same SAM in another domain is rejected");
-imported.DomainName = "aknet.akb";
+imported.DomainName = "corp.example";
 imported.IsActiveDirectoryUser = false;
 Check(!ActiveDirectoryIdentity.Matches(imported, directoryUser), "Local accounts never match a Windows SSO identity");
 
@@ -330,19 +342,19 @@ var machinesController = new MachinesController(context, hubContext, new Regress
 };
 var machineRequest = new CreateMachineRequest
 {
-    Name = "Regression VM", IpAddress = "192.0.2.20", RdpHostName = "vm01.aknet.akb",
+    Name = "Regression VM", IpAddress = "192.0.2.20", RdpHostName = "vm01.corp.example",
     EntitledUserIds = [user.Id],
-    EntitledAdGroups = [new() { GroupName = "vdi", DomainName = "aknet.akb" }]
+    EntitledAdGroups = [new() { GroupName = "vdi", DomainName = "corp.example" }]
 };
 var created = await machinesController.CreateMachine(machineRequest, CancellationToken.None);
 Check(created.Result is CreatedResult { Value: MachineResponse }, "Machine creation returns the expected API shape");
 var machineId = ((MachineResponse)((CreatedResult)created.Result!).Value!).Id;
-machineRequest.RdpHostName = "vm02.aknet.akb";
+machineRequest.RdpHostName = "vm02.corp.example";
 var updated = await machinesController.UpdateMachine(machineId, machineRequest, CancellationToken.None);
 Check(updated.Result is OkObjectResult && context.UserMachines.Count(x => x.MachineId == machineId) == 1 &&
     context.MachineAdGroupEntitlements.Count(x => x.MachineId == machineId) == 1,
     "Updating with retained entitlements does not duplicate composite keys");
-Check(context.Machines.Single(x => x.Id == machineId).RdpHostName == "vm02.aknet.akb",
+Check(context.Machines.Single(x => x.Id == machineId).RdpHostName == "vm02.corp.example",
     "Existing machine DNS name can be changed without recreating it");
 context.Machines.Add(new BeRdp.Backend.Models.Machine
 {
@@ -358,13 +370,26 @@ machinesController.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity([
     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(ClaimTypes.Role, "User")
 ], "regression"));
 var standardResult = await machinesController.GetMachines(null, 0, 500, false, CancellationToken.None);
-Check(((IReadOnlyList<MachineResponse>)((OkObjectResult)standardResult.Result!).Value!).Count == 1,
+var standardMachines = (IReadOnlyList<MachineResponse>)((OkObjectResult)standardResult.Result!).Value!;
+Check(standardMachines.Count == 1,
     "Standard user cannot bypass entitlement filtering with assignedOnly=false");
+Check(standardMachines.All(m => m.AssignedUsernames.Count == 0 && m.AssignedUserDisplayNames.Count == 0 &&
+        m.AssignedAdGroups.Count == 0 && m.AssignedUserCount == 0),
+    "Entitlement-only users do not see who else is assigned to their machines");
+var usersController = new UsersController(context);
+foreach (var reservedName in new[] { @"corp\impostor", "impostor@corp.example", "x" })
+{
+    var invalidLocal = await usersController.CreateUser(new CreateUserRequest
+    {
+        Username = reservedName, DisplayName = "Impostor", Password = "Long-enough-password-1"
+    }, CancellationToken.None);
+    Check(invalidLocal.Result is BadRequestObjectResult, $"Local user name '{reservedName}' is rejected");
+}
 machineRequest.EntitledUserIds.Clear();
 await machinesController.UpdateMachine(machineId, machineRequest, CancellationToken.None);
 machinesController.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity([
     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(ClaimTypes.Role, "User"),
-    new Claim("ad_group", @"aknet.akb\vdi")
+    new Claim("ad_group", @"corp.example\vdi")
 ], "regression"));
 var groupResult = await machinesController.GetMachines(null, 0, 500, false, CancellationToken.None);
 Check(((IReadOnlyList<MachineResponse>)((OkObjectResult)groupResult.Result!).Value!).Count == 1,
@@ -401,11 +426,11 @@ gatewaySettings["BrowserRdp:Enabled"] = "true";
 var now = DateTimeOffset.UtcNow;
 var launchUser = new BeRdp.Backend.Models.User
 {
-    Username = @"aknet.akb\sam", UserPrincipalName = "different.upn@staff.example", IsActiveDirectoryUser = true
+    Username = @"corp.example\sam", UserPrincipalName = "different.upn@staff.example", IsActiveDirectoryUser = true
 };
 var launchMachine = new BeRdp.Backend.Models.Machine
 {
-    Name = "Browser VM", IpAddress = "192.0.2.30", RdpHostName = "vm30.aknet.akb", RdpPort = 3390
+    Name = "Browser VM", IpAddress = "192.0.2.30", RdpHostName = "vm30.corp.example", RdpPort = 3390
 };
 var launchUrl = new Uri(gateway.CreateLaunchUrl(launchUser, launchMachine, now));
 var encrypted = Convert.FromBase64String(Uri.UnescapeDataString(launchUrl.Query["?data=".Length..]));
@@ -419,7 +444,7 @@ using var ticket = JsonDocument.Parse(signed.AsMemory(32));
 var ticketConnection = ticket.RootElement.GetProperty("connections").GetProperty("Browser VM").GetProperty("parameters");
 Check(ticket.RootElement.GetProperty("expires").GetInt64() == now.AddSeconds(60).ToUnixTimeMilliseconds(),
     "Gateway authorization expires after 60 seconds");
-Check(ticketConnection.GetProperty("hostname").GetString() == "vm30.aknet.akb" &&
+Check(ticketConnection.GetProperty("hostname").GetString() == "vm30.corp.example" &&
     ticketConnection.GetProperty("port").GetString() == "3390" &&
     ticketConnection.GetProperty("username").GetString() == launchUser.UserPrincipalName &&
     !ticketConnection.TryGetProperty("password", out _) &&
@@ -444,13 +469,13 @@ context.Users.Add(new User
     CanAccessAdminConsole = false
 });
 context.Users.AddRange(
-    new User { Username = @"aknet.akb\aduser", DisplayName = "AD User", IsActiveDirectoryUser = true, DomainName = "aknet.akb", UserPrincipalName = "aduser@aknet.akb" },
-    new User { Username = @"aknet.akb\noupn", DisplayName = "AD Without UPN", IsActiveDirectoryUser = true, DomainName = "aknet.akb" },
-    new User { Username = "upnonly@aknet.akb", DisplayName = "UPN Only", IsActiveDirectoryUser = true },
+    new User { Username = @"corp.example\aduser", DisplayName = "AD User", IsActiveDirectoryUser = true, DomainName = "corp.example", UserPrincipalName = "aduser@corp.example" },
+    new User { Username = @"corp.example\noupn", DisplayName = "AD Without UPN", IsActiveDirectoryUser = true, DomainName = "corp.example" },
+    new User { Username = "upnonly@corp.example", DisplayName = "UPN Only", IsActiveDirectoryUser = true },
     new User { Username = @"staff.example\otheruser", DisplayName = "Other Domain", IsActiveDirectoryUser = true, DomainName = "staff.example" },
-    new User { Username = @"aknet.akb\dupuser", DisplayName = "Duplicate One", IsActiveDirectoryUser = true, DomainName = "aknet.akb" },
+    new User { Username = @"corp.example\dupuser", DisplayName = "Duplicate One", IsActiveDirectoryUser = true, DomainName = "corp.example" },
     new User { Username = @"staff.example\dupuser", DisplayName = "Duplicate Two", IsActiveDirectoryUser = true, DomainName = "staff.example" },
-    new User { Username = @"aknet.akb\shared01", DisplayName = "Shared AD", IsActiveDirectoryUser = true, DomainName = "aknet.akb" });
+    new User { Username = @"corp.example\shared01", DisplayName = "Shared AD", IsActiveDirectoryUser = true, DomainName = "corp.example" });
 context.SaveChanges();
 
 var authController = new AuthController(
@@ -521,36 +546,36 @@ Check(await validator.ValidateAsync(consoleClaimsPrincipal, CancellationToken.No
       consoleClaimsPrincipal.FindFirstValue("CanAccessAdminConsole") == "false" &&
       consoleClaimsPrincipal.FindFirstValue("ConsoleRole") == "Standard",
     "Revoking console access is enforced on the next authenticated request");
-await LoginOkAsync(@"aknet\user01", "User01Pass123!", "user01 can log in as DOMAIN\\user");
-await LoginOkAsync(@"AKNET\USER01", "User01Pass123!", "Domain-qualified login is case-insensitive");
-await LoginOkAsync("user01@aknet.akb", "User01Pass123!", "user01 can log in with its corporate UPN suffix");
-await LoginOkAsync("USER01@AKNET.AKB", "User01Pass123!", "UPN login is case-insensitive");
-await LoginOkAsync("user01@aknet", "User01Pass123!", "UPN login accepts the NetBIOS domain alias");
+await LoginOkAsync(@"corp\user01", "User01Pass123!", "user01 can log in as DOMAIN\\user");
+await LoginOkAsync(@"CORP\USER01", "User01Pass123!", "Domain-qualified login is case-insensitive");
+await LoginOkAsync("user01@corp.example", "User01Pass123!", "user01 can log in with its corporate UPN suffix");
+await LoginOkAsync("USER01@CORP.EXAMPLE", "User01Pass123!", "UPN login is case-insensitive");
+await LoginOkAsync("user01@corp", "User01Pass123!", "UPN login accepts the NetBIOS domain alias");
 
-var consoleLogin = await LoginOkAsync("console-user@aknet.akb", "ConsoleUser123!",
+var consoleLogin = await LoginOkAsync("console-user@corp.example", "ConsoleUser123!",
     "Read-only console account logs in with a UPN suffix");
 Check(consoleLogin.CanAccessAdminConsole && consoleLogin.ConsoleRole == ConsoleRole.Standard,
     "console-user keeps read-only admin console access");
 var adminLogin = await LoginOkAsync("admin", "Berdp@Admin2026!Secure#Password", "Admin logs in with a plain username");
 Check(adminLogin.IsAdmin && adminLogin.CanAccessAdminConsole && adminLogin.ConsoleRole == ConsoleRole.Admin,
     "Admin keeps full admin console access and the effective admin role");
-await LoginOkAsync("admin@aknet.akb", "Berdp@Admin2026!Secure#Password", "Admin logs in with a UPN suffix");
+await LoginOkAsync("admin@corp.example", "Berdp@Admin2026!Secure#Password", "Admin logs in with a UPN suffix");
 
 var adLogin = await LoginOkAsync("aduser", "AdPass123!", "Imported AD user logs in with a plain SAM");
-Check(adLogin.IsActiveDirectoryUser && adLogin.Username == @"aknet.akb\aduser",
+Check(adLogin.IsActiveDirectoryUser && adLogin.Username == @"corp.example\aduser",
     "AD login returns the canonical imported identity");
-await LoginOkAsync(@"aknet\aduser", "AdPass123!", "AD user logs in with the NetBIOS domain prefix");
-await LoginOkAsync(@"aknet.akb\aduser", "AdPass123!", "AD user logs in with the DNS domain prefix");
-await LoginOkAsync("aduser@aknet.akb", "AdPass123!", "AD user logs in with the stored UPN");
-await LoginOkAsync("aduser@AKNET", "AdPass123!", "AD user logs in with a NetBIOS UPN suffix");
-await LoginOkAsync("noupn@aknet.akb", "AdPass123!", "AD user without a stored UPN resolves through its domain");
+await LoginOkAsync(@"corp\aduser", "AdPass123!", "AD user logs in with the NetBIOS domain prefix");
+await LoginOkAsync(@"corp.example\aduser", "AdPass123!", "AD user logs in with the DNS domain prefix");
+await LoginOkAsync("aduser@corp.example", "AdPass123!", "AD user logs in with the stored UPN");
+await LoginOkAsync("aduser@CORP", "AdPass123!", "AD user logs in with a NetBIOS UPN suffix");
+await LoginOkAsync("noupn@corp.example", "AdPass123!", "AD user without a stored UPN resolves through its domain");
 Check((await authController.Login(new LoginRequest { Username = "otheruser@staff.example", Password = "AdPass123!" }, CancellationToken.None)).Result is UnauthorizedObjectResult, "Foreign directory account cannot authenticate against configured domain");
 await LoginOkAsync("upnonly", "AdPass123!", "UPN-only AD account resolves with a plain SAM");
-await LoginOkAsync(@"AKNET\upnonly", "AdPass123!", "UPN-only AD account resolves with the NetBIOS domain prefix");
-await LoginOkAsync(@"aknet.akb\upnonly", "AdPass123!", "UPN-only AD account resolves with the DNS domain prefix");
-await LoginOkAsync("upnonly@AKNET", "AdPass123!", "UPN-only AD account resolves with the NetBIOS UPN suffix");
+await LoginOkAsync(@"CORP\upnonly", "AdPass123!", "UPN-only AD account resolves with the NetBIOS domain prefix");
+await LoginOkAsync(@"corp.example\upnonly", "AdPass123!", "UPN-only AD account resolves with the DNS domain prefix");
+await LoginOkAsync("upnonly@CORP", "AdPass123!", "UPN-only AD account resolves with the NetBIOS UPN suffix");
 
-await LoginRejectedAsync("otheruser@aknet.akb", "AdPass123!", 401,
+await LoginRejectedAsync("otheruser@corp.example", "AdPass123!", 401,
     "A different FQDN is not treated as the same domain");
 await LoginRejectedAsync("upnonly@staff.example", "AdPass123!", 401,
     "A UPN-only AD account rejects a different FQDN suffix");
@@ -558,7 +583,7 @@ await LoginRejectedAsync(@"staff.example\aduser", "AdPass123!", 401,
     "A wrong domain prefix does not match another domain's AD account");
 await LoginRejectedAsync("dupuser", "AdPass123!", 400,
     "An ambiguous plain SAM returns guidance instead of guessing a domain");
-await LoginOkAsync(@"aknet\dupuser", "AdPass123!", "An ambiguous SAM resolves with the NetBIOS domain prefix");
+await LoginOkAsync(@"corp\dupuser", "AdPass123!", "An ambiguous SAM resolves with the NetBIOS domain prefix");
 await LoginRejectedAsync(@"staff.example\dupuser", "AdPass123!", 401, "Foreign-domain duplicate SAM cannot authenticate against configured directory");
 await LoginRejectedAsync("user01", "WrongPassword!", 401, "Wrong password is rejected for a local entitlement user");
 await LoginRejectedAsync("aduser", "WrongPassword!", 401, "Wrong password is rejected for an AD user");
@@ -566,7 +591,7 @@ await LoginRejectedAsync("unknown-user", "User01Pass123!", 401, "Unknown identif
 
 var sharedLocal = await LoginOkAsync("shared01", "SharedPass123!", "Plain SAM prefers the exact local account");
 Check(!sharedLocal.IsActiveDirectoryUser, "Exact local username wins over a domain-prefixed AD username");
-var sharedAd = await LoginOkAsync(@"aknet\shared01", "AdPass123!", "Domain-qualified SAM resolves to the AD account");
+var sharedAd = await LoginOkAsync(@"corp\shared01", "AdPass123!", "Domain-qualified SAM resolves to the AD account");
 Check(sharedAd.IsActiveDirectoryUser, "Domain-qualified login uses the AD account when one exists");
 
 using (var verifyContext = new AppDbContext(dbOptions))

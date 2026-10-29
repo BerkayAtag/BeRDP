@@ -5,13 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
   <title>BeRDP | Dijital Çalışma Alanı</title>
+  <link rel="icon" type="image/png" href="/img/berdp-logo.png" />
   <link rel="stylesheet" href="/css/site.css" />
+  <script src="/js/theme.js"></script>
 </head>
 <body>
   <main class="app-root">
     <section id="loginView" class="login-shell">
       <section class="panel login-panel">
-        <span class="brand-label">BeRDP · DİJİTAL ÇALIŞMA ALANI</span>
+        <div class="login-brand">
+          <img src="/img/berdp-logo.png" alt="" width="44" height="44" />
+          <span class="brand-label">BeRDP · DİJİTAL ÇALIŞMA ALANI</span>
+          <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Karanlık temaya geç" title="Karanlık temaya geç">
+            <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
         <h1>Çalışma alanınıza hoş geldiniz</h1>
         <p class="hint">Domain hesabınızla atanmış masaüstlerinize ve yetkili yönetim alanlarına erişin.</p>
         <button id="windowsLoginButton" type="button">Windows Oturumuyla Giriş</button>
@@ -35,7 +44,7 @@
     <section id="dashboardView" class="dashboard hidden">
       <aside class="sidebar panel">
         <div class="sidebar-head">
-          <h2>BeRDP</h2>
+          <h2><img src="/img/berdp-logo.png" alt="" width="30" height="30" />BeRDP</h2>
           <p id="adminInfo" class="hint"></p>
         </div>
 
@@ -77,7 +86,10 @@
           </div>
           <div class="topbar-actions">
             <button id="downloadClientButton" type="button" class="secondary" title="BeRDP İstemci Kurulum Paketi indir">⬇ Client Setup İndir</button>
-            <button id="themeToggleButton" type="button" class="secondary">Tema Değiştir</button>
+            <button id="themeToggleButton" type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Karanlık temaya geç" title="Karanlık temaya geç">
+              <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+              <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
             <button id="refreshButton" type="button">Yenile</button>
             <button id="logoutButton" type="button" class="secondary">Çıkış</button>
           </div>
@@ -137,9 +149,9 @@
             <section class="card">
               <h2>Lokal Kullanıcı Ekle</h2>
               <form id="createUserForm" class="stack compact">
-                <input id="newUsername" type="text" placeholder="Kullanıcı adı" required />
+                <input id="newUsername" type="text" placeholder="Kullanıcı adı (harf, rakam, . - _)" pattern="[A-Za-z0-9][A-Za-z0-9._\-]{2,63}" maxlength="64" required />
                 <input id="newDisplayName" type="text" placeholder="Görünen ad" required />
-                <input id="newPassword" type="password" placeholder="Parola" required />
+                <input id="newPassword" type="password" placeholder="Parola (en az 14 karakter)" autocomplete="new-password" minlength="14" maxlength="72" required />
                 <button type="submit">Kullanıcı Ekle</button>
               </form>
               <p class="hint">Admin yetki verme/kaldırma işlemleri ayrı Yetkilendirme sayfasından yapılır.</p>
@@ -261,7 +273,7 @@
                   Active Directory aktif
                 </label>
                 <input id="adDomainInput" type="text" placeholder="Domain (örn: example.test)" />
-                <input id="adContainerInput" type="text" placeholder="OU=People,OU=Example,DC=aknet,DC=akb" />
+                <input id="adContainerInput" type="text" placeholder="OU=People,DC=example,DC=test (opsiyonel)" />
                 <label class="checkbox-row">
                   <input id="adUseMachineCredentialsInput" type="checkbox" checked />
                   Sunucu makine hesabı ile bağlan
@@ -289,12 +301,13 @@
 
         <section id="page-firewall" class="page hidden">
           <section class="card">
-            <h2>Ağ Erişim & Firewall Kuralları</h2>
-            <p class="hint">BeRDP Sunucu, İstemci, RDP Hedefleri ve Active Directory arasındaki gerekli port ve protokol izinleri.</p>
+            <h2>Ağ erişimi ve firewall kuralları</h2>
+            <p class="hint">BeRDP servisleri yalnız <code>127.0.0.1</code> üzerinde dinler. İstemciler ve tarayıcılar sunucuya kurumunuzun TLS reverse proxy'si üzerinden HTTPS ile bağlanır; 5001 ve 5173 portlarını dış ağa açmayın.</p>
           </section>
 
           <section class="card">
-            <h2>1. İstemci ◄► Sunucu ve RDP Hedefleri Trafiği</h2>
+            <h2>1. İstemci, sunucu ve RDP hedefleri</h2>
+            <div class="table-wrap">
             <table class="data-table">
               <thead>
                 <tr>
@@ -308,51 +321,54 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>İstemci VLAN'ları</td>
-                  <td>BeRDP Sunucusu</td>
+                  <td>İstemci ve yönetici ağları</td>
+                  <td>TLS reverse proxy (BeRDP sunucusu)</td>
                   <td><span class="badge local">TCP</span></td>
-                  <td><strong>5001</strong></td>
-                  <td>REST API, Login, Negotiate SSO ve SignalR WebSocket kanalı</td>
+                  <td><strong>443</strong></td>
+                  <td>HTTPS API (<code>/api</code>), yönetim konsolu, Windows SSO ve SignalR WebSocket</td>
                   <td><span class="badge admin">Zorunlu</span></td>
                 </tr>
                 <tr>
-                  <td>Yönetici & Portal Ağları</td>
-                  <td>BeRDP Sunucusu</td>
+                  <td>Aynı sunucudaki proxy</td>
+                  <td>BeRDP API / konsol</td>
                   <td><span class="badge local">TCP</span></td>
-                  <td><strong>5173</strong></td>
-                  <td>Web Yönetim Paneli ve Kullanıcı Portalı</td>
-                  <td><span class="badge admin">Zorunlu</span></td>
+                  <td><strong>5001 / 5173</strong></td>
+                  <td>Yalnız loopback (127.0.0.1); dış ağa açılmaz</td>
+                  <td><span class="badge standard">Yerel</span></td>
                 </tr>
                 <tr>
-                  <td>İstemci VLAN'ları</td>
-                  <td>RDP Hedefleri (VM/PC)</td>
+                  <td>İstemci ağları</td>
+                  <td>RDP hedefleri (VM/PC)</td>
                   <td><span class="badge local">TCP</span></td>
                   <td><strong>3389</strong></td>
-                  <td>Standart RDP Uzak Masaüstü Bağlantısı</td>
+                  <td>Windows Uzak Masaüstü bağlantısı (mstsc)</td>
                   <td><span class="badge admin">Zorunlu</span></td>
                 </tr>
                 <tr>
-                  <td>İstemci VLAN'ları</td>
-                  <td>RDP Hedefleri (VM/PC)</td>
+                  <td>İstemci ağları</td>
+                  <td>RDP hedefleri (VM/PC)</td>
                   <td><span class="badge ad">UDP</span></td>
                   <td><strong>3389</strong></td>
-                  <td>RDP 8.0+ Yüksek Performans Akıcı Görüntü/Ses Taşıması</td>
+                  <td>RDP UDP taşıması: daha akıcı görüntü ve ses</td>
                   <td><span class="badge standard">Önerilen</span></td>
                 </tr>
                 <tr>
-                  <td>BeRDP Sunucusu</td>
-                  <td>RDP Hedefleri (VM/PC)</td>
+                  <td>BeRDP sunucusu</td>
+                  <td>RDP hedefleri (VM/PC)</td>
                   <td><span class="badge local">TCP</span></td>
                   <td><strong>3389</strong></td>
-                  <td>Anlık RDP Erişilebilirlik (Online/Offline) Probe Kontrolü</td>
+                  <td>"RDP erişilebilir" durum kontrolü (TCP bağlantı denemesi)</td>
                   <td><span class="badge standard">Önerilen</span></td>
                 </tr>
               </tbody>
             </table>
+            </div>
           </section>
 
           <section class="card">
-            <h2>2. BeRDP Sunucusu ◄► Active Directory (Domain Controller) Trafiği</h2>
+            <h2>2. BeRDP sunucusu ve Active Directory</h2>
+            <p class="hint">Yalnız AD entegrasyonu açıksa gereklidir. Kesin kuralları kurumunuzun AD topolojisine göre belirleyin; geniş <code>Any</code> kuralları oluşturmayın.</p>
+            <div class="table-wrap">
             <table class="data-table">
               <thead>
                 <tr>
@@ -361,69 +377,55 @@
                   <th>Protokol</th>
                   <th>Port</th>
                   <th>Açıklama</th>
-                  <th>Durum</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>BeRDP Sunucusu</td>
+                  <td>BeRDP sunucusu</td>
                   <td>Domain DNS</td>
                   <td><span class="badge local">TCP / UDP</span></td>
                   <td><strong>53</strong></td>
-                  <td>DNS Çözümleme ve DC Keşfi (SRV Sorguları)</td>
-                  <td><span class="badge admin">Zorunlu</span></td>
+                  <td>DNS çözümleme ve DC keşfi (SRV)</td>
                 </tr>
                 <tr>
-                  <td>BeRDP Sunucusu</td>
+                  <td>BeRDP sunucusu</td>
                   <td>Domain Controller</td>
                   <td><span class="badge local">TCP / UDP</span></td>
                   <td><strong>88</strong></td>
-                  <td>Kerberos Kimlik Doğrulama Servisi</td>
-                  <td><span class="badge admin">Zorunlu</span></td>
+                  <td>Kerberos kimlik doğrulama</td>
                 </tr>
                 <tr>
-                  <td>BeRDP Sunucusu</td>
+                  <td>BeRDP sunucusu</td>
                   <td>Domain Controller</td>
                   <td><span class="badge local">TCP / UDP</span></td>
                   <td><strong>389</strong></td>
-                  <td>LDAP / CLDAP Dizin Sorguları ve Kullanıcı Arama</td>
-                  <td><span class="badge admin">Zorunlu</span></td>
+                  <td>LDAP / CLDAP sorguları ve kullanıcı arama</td>
                 </tr>
                 <tr>
-                  <td>BeRDP Sunucusu</td>
+                  <td>BeRDP sunucusu</td>
                   <td>Global Catalog</td>
                   <td><span class="badge local">TCP</span></td>
                   <td><strong>3268</strong></td>
-                  <td>Active Directory Global Catalog Sorguları</td>
-                  <td><span class="badge admin">Zorunlu</span></td>
+                  <td>Global Catalog sorguları</td>
                 </tr>
                 <tr>
-                  <td>BeRDP Sunucusu</td>
+                  <td>BeRDP sunucusu</td>
                   <td>Domain Controller</td>
                   <td><span class="badge local">TCP</span></td>
-                  <td><strong>135</strong></td>
-                  <td>RPC Endpoint Mapper (AD Grup sorguları)</td>
-                  <td><span class="badge admin">Zorunlu</span></td>
-                </tr>
-                <tr>
-                  <td>BeRDP Sunucusu</td>
-                  <td>Domain Controller</td>
-                  <td><span class="badge local">TCP</span></td>
-                  <td><strong>49152 - 65535</strong></td>
-                  <td>Windows Dinamik RPC Aralığı (NetLogon / LSA)</td>
-                  <td><span class="badge admin">Zorunlu</span></td>
+                  <td><strong>135, 49152-65535</strong></td>
+                  <td>RPC; grup üyeliği ve NetLogon sorguları</td>
                 </tr>
               </tbody>
             </table>
+            </div>
           </section>
 
           <section class="card">
-            <h2>3. Hızlı Güvenlik Duvarı Kontrol Komutları (PowerShell)</h2>
-            <p class="hint">Yönetici PowerShell terminalinde aşağıdaki komutlarla port erişimlerini doğrulayabilirsiniz:</p>
-            <pre class="code-block"><code># BeRDP Backend API erişimini test et (TCP 5001)
-Test-NetConnection -ComputerName "sunucu-ip" -Port 5001
+            <h2>3. Hızlı bağlantı kontrolleri (PowerShell)</h2>
+            <pre class="code-block"><code># BeRDP HTTPS adresini test et (TCP 443)
+Test-NetConnection -ComputerName "berdp.example.test" -Port 443
 
-# RDP Hedef Makine erişimini test et (TCP 3389)
+# RDP hedef makine erişimini test et (TCP 3389)
 Test-NetConnection -ComputerName "vm01.example.test" -Port 3389
 
 # Active Directory LDAP erişimini test et (TCP 389)
@@ -433,39 +435,40 @@ Test-NetConnection -ComputerName "dc01.example.test" -Port 389</code></pre>
 
         <section id="page-installation" class="page hidden">
           <section class="card">
-            <h2>BeRDP Sessiz Kurulum & Kaldırma Rehberi</h2>
-            <p class="hint">Kurumsal ortamda (SCCM / Intune / GPO) kullanılabilecek sessiz kurulum ve kaldırma komutları. Kurulum parametreleri ve yapılandırması için docs/INSTALLATION_GUIDE.md dosyasına bakınız.</p>
+            <h2>Kurulum ve kaldırma</h2>
+            <p class="hint">Setup dosyaları çift tıklayıp <em>Kur</em> diyerek kurulur. Aşağıdaki komutlar SCCM, Intune veya GPO ile sessiz dağıtım içindir. İmzasız paketlerde SmartScreen uyarısı görülebilir.</p>
           </section>
 
           <section class="card">
-            <h2>1. İstemci (Client) Sessiz Kurulum Komutları</h2>
-            <p class="hint">Normal Kullanıcı Bilgisayarları (SSO ve Desktop Icon ile):</p>
-            <pre class="code-block"><code>BeRDP.Client.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /TASKS="desktopicon" /BACKENDURL="https://berdp.example.test" /SSO=1 /LOG="%TEMP%\BeRdpClientInstall.log"</code></pre>
-
-            <p class="hint" style="margin-top: 12px;">RDP Hedefi Olarak Kullanılan İş İstasyonları (RDP Host, AVC444 ve Firewall Kuralları ile):</p>
-            <pre class="code-block"><code>BeRDP.Client.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /BACKENDURL="https://berdp.example.test" /SSO=1 /TASKS="desktopicon,rdphost" /RDPNETWORKS="10.20.0.0/16,10.30.10.0/24" /RDPPORT=3389 /LOG="%TEMP%\BeRdpHostInstall.log"</code></pre>
+            <h2>1. İstemci sessiz kurulum</h2>
+            <p class="hint">Kullanıcı bilgisayarları (masaüstü kısayolu ile):</p>
+            <pre class="code-block"><code>BeRDP.Client.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /TASKS="desktopicon" /BACKENDURL="https://berdp.example.test/api" /SSO=0 /LOG="%TEMP%\BeRdpClientInstall.log"</code></pre>
+            <p class="hint">Windows SSO yalnız domain DNS adı ve doğrulanmış Kerberos ortamında <code>/SSO=1</code> ile açılmalıdır. RDP hedefi olarak kullanılacak iş istasyonları için <code>/TASKS="desktopicon,rdphost" /RDPNETWORKS="10.20.0.0/16" /RDPPORT=3389</code> eklenebilir; merkezi GPO ile yönetilen makinelerde kullanmayın.</p>
           </section>
 
           <section class="card">
-            <h2>2. İstemci (Client) Sessiz Kaldırma Komutu</h2>
+            <h2>2. İstemci sessiz kaldırma</h2>
             <pre class="code-block"><code>"C:\Program Files\BeRDP\Client\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART</code></pre>
           </section>
 
           <section class="card">
-            <h2>3. Sunucu (Server) Sessiz Kurulum Komutu</h2>
-            <p class="hint">Yönetici haklarıyla (Elevated CMD) çalıştırılmalıdır:</p>
-            <pre class="code-block"><code>BeRDP.Server.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /SSO=1 /CLIENTNETWORKS="10.20.0.0/16,10.30.10.0/24" /PORTALNETWORKS="10.20.0.0/16,10.30.10.0/24" /LOG="%TEMP%\BeRdpServerInstall.log"</code></pre>
+            <h2>3. Sunucu sessiz kurulum</h2>
+            <p class="hint">Yönetici yetkisiyle çalıştırın. Sessiz kurulumda ilk yönetici sorulmaz; ardından sunucuda yönetici PowerShell ile oluşturun:</p>
+            <pre class="code-block"><code>BeRDP.Server.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /SSO=0 /LOG="%TEMP%\BeRdpServerInstall.log"
+
+cd "C:\Program Files\BeRDP\Server\Backend"
+.\BeRdp.Backend.exe --bootstrap-admin kurum-admin</code></pre>
           </section>
 
           <section class="card">
-            <h2>4. Sunucu (Server) Sessiz Kaldırma Komutu</h2>
+            <h2>4. Sunucu sessiz kaldırma</h2>
             <pre class="code-block"><code>"C:\ProgramData\BeRDP\Server\Uninstall\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART</code></pre>
             <p class="notice">Sunucu kaldırılırken veritabanı (<code>berdp.db</code>) ve anahtar yedekleri veri kaybını önlemek için silinmez.</p>
           </section>
 
           <section class="card">
-            <h2>5. Güncellemeler ve Yükseltme (In-Place Upgrade)</h2>
-            <p class="hint">Mevcut servisleri durdurmadan veya eski sürümü kaldırmadan yeni setup dosyalarını doğrudan çalıştırın:</p>
+            <h2>5. Yükseltme</h2>
+            <p class="hint">Önce veritabanı, yapılandırma ve DataProtectionKeys yedeğini alın. Yeni setup dosyalarını eski sürümü kaldırmadan çalıştırın; mevcut ayarlar, anahtarlar ve hesaplar korunur.</p>
             <pre class="code-block"><code>Sunucuda:
 BeRDP.Server.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
 
@@ -476,6 +479,7 @@ BeRDP.Client.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-</code></pre
       </section>
     </section>
   </main>
+  <footer class="app-footer">© 2026 Berkay Atağ · BeRDP</footer>
 
   <script src="/config.js"></script>
   <script src="/js/app.js"></script>

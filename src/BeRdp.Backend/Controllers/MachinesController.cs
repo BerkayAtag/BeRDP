@@ -83,7 +83,26 @@ public class MachinesController(
             .Take(normalizedTake)
             .ToListAsync(cancellationToken);
 
-        var response = await Task.WhenAll(machines.Select(async machine => new MachineResponse
+        var response = await Task.WhenAll(machines.Select(async machine => hasConsoleAccess
+            ? await ToInventoryResponseAsync(machine, cancellationToken)
+            : new MachineResponse
+            {
+                Id = machine.Id,
+                Name = machine.Name,
+                IpAddress = machine.IpAddress,
+                RdpHostName = machine.RdpHostName,
+                RdpPort = machine.RdpPort,
+                IsOnline = await rdpAvailabilityService.IsAvailableAsync(machine.IpAddress, machine.RdpPort, cancellationToken),
+                AssignedUserDisplayNames = [],
+                AssignedUsernames = [],
+                AssignedAdGroups = []
+            }));
+
+        return Ok(response);
+    }
+
+    private async Task<MachineResponse> ToInventoryResponseAsync(Machine machine, CancellationToken cancellationToken) =>
+        new()
         {
             Id = machine.Id,
             Name = machine.Name,
@@ -111,10 +130,7 @@ public class MachinesController(
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(x => x)
                 .ToList()
-        }));
-
-        return Ok(response);
-    }
+        };
 
     [HttpPost("machines/{id:guid}/browser-session")]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("login")]
@@ -177,35 +193,7 @@ public class MachinesController(
             .Include(x => x.AdGroupEntitlements)
             .ToListAsync(cancellationToken);
 
-        var items = await Task.WhenAll(machineRows.Select(async machine => new MachineResponse
-        {
-            Id = machine.Id,
-            Name = machine.Name,
-            IpAddress = machine.IpAddress,
-            RdpHostName = machine.RdpHostName,
-            RdpPort = machine.RdpPort,
-            IsOnline = await rdpAvailabilityService.IsAvailableAsync(machine.IpAddress, machine.RdpPort, cancellationToken),
-            AssignedUserCount = machine.UserMachines.Count,
-            AssignedAdGroupCount = machine.AdGroupEntitlements.Count,
-            AssignedUserDisplayNames = machine.UserMachines
-                .Select(x => x.User.DisplayName)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(x => x)
-                .ToList(),
-            AssignedUsernames = machine.UserMachines
-                .Select(x => x.User.Username)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(x => x)
-                .ToList(),
-            AssignedAdGroups = machine.AdGroupEntitlements
-                .Select(x => FormatAdGroupName(x.DomainName, x.GroupName))
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(x => x)
-                .ToList()
-        }));
+        var items = await Task.WhenAll(machineRows.Select(machine => ToInventoryResponseAsync(machine, cancellationToken)));
 
         return Ok(new PagedResult<MachineResponse>
         {

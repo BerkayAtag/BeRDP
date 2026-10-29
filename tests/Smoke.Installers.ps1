@@ -27,9 +27,11 @@ try {
     $results = foreach ($entry in @(@{Kind='Client';Key=$clientKey},@{Kind='Server';Key=$serverKey})) {
         $value = Get-ItemProperty -LiteralPath $entry.Key
         if ($value.Publisher -cne 'Berkay Atağ') { throw "Incorrect appwiz Publisher for $($entry.Kind)" }
-        if ($value.DisplayVersion -ne '1.6.0') { throw "Incorrect installed version for $($entry.Kind)" }
-        Write-Host "PASS appwiz.cpl $($entry.Kind): Publisher=$($value.Publisher), Version=$($value.DisplayVersion)"
-        [pscustomobject]@{Component=$entry.Kind;DisplayName=$value.DisplayName;Publisher=$value.Publisher;Version=$value.DisplayVersion}
+        if ($value.DisplayVersion -ne '1.7.0') { throw "Incorrect installed version for $($entry.Kind)" }
+        $iconPath = ($value.DisplayIcon -replace ',\s*-?\d+$', '').Trim('"')
+        if (-not $iconPath -or -not (Test-Path -LiteralPath $iconPath -PathType Leaf)) { throw "Missing appwiz icon for $($entry.Kind)" }
+        Write-Host "PASS appwiz.cpl $($entry.Kind): Publisher=$($value.Publisher), Version=$($value.DisplayVersion), Icon=$($value.DisplayIcon)"
+        [pscustomobject]@{Component=$entry.Kind;DisplayName=$value.DisplayName;Publisher=$value.Publisher;Version=$value.DisplayVersion;DisplayIcon=$value.DisplayIcon}
     }
     foreach ($port in @(5001,5173)) {
         if ((Invoke-WebRequest "http://127.0.0.1:$port/health").StatusCode -ne 200) { throw "Service health failed: $port" }
@@ -40,6 +42,17 @@ try {
     $defaultLogin = Invoke-WebRequest 'http://127.0.0.1:5001/login' -Method Post -ContentType 'application/json' -Body '{"username":"admin","password":"Admin123!"}' -SkipHttpErrorCheck
     if ($defaultLogin.StatusCode -ne 401) { throw 'Unexpected default administrator access' }
     Write-Host 'PASS installed server rejects historical default credentials'
+    # Same path the Server Setup wizard uses for its first-administrator page.
+    $backendRoot = Join-Path $testRoot 'Server/Backend'
+    $adminPassword = 'Ci-' + [guid]::NewGuid().ToString('N')
+    $env:BERDP_SETUP_ADMIN_PASSWORD = $adminPassword
+    try {
+        $bootstrap = Start-Process -FilePath (Join-Path $backendRoot 'BeRdp.Backend.exe') -ArgumentList @('--contentRoot', "`"$backendRoot`"", '--bootstrap-admin', 'ci-admin') -WorkingDirectory $backendRoot -WindowStyle Hidden -PassThru -Wait
+    } finally { Remove-Item Env:BERDP_SETUP_ADMIN_PASSWORD -ErrorAction SilentlyContinue }
+    if ($bootstrap.ExitCode -ne 0) { throw "First administrator bootstrap failed with exit code $($bootstrap.ExitCode)" }
+    $adminLogin = Invoke-WebRequest 'http://127.0.0.1:5001/login' -Method Post -ContentType 'application/json' -Body (@{ username = 'ci-admin'; password = $adminPassword } | ConvertTo-Json) -SkipHttpErrorCheck
+    if ($adminLogin.StatusCode -ne 200 -or -not ($adminLogin.Content | ConvertFrom-Json).canAccessAdminConsole) { throw 'Bootstrapped administrator cannot sign in to the console' }
+    Write-Host 'PASS setup-style first administrator bootstrap signs in with console access'
     $configurationPath = Join-Path $testRoot 'Server/Backend/appsettings.json'
     $before = Get-Content -LiteralPath $configurationPath -Raw | ConvertFrom-Json
     Run-Setup "$output/BeRDP.Server.Setup.exe" ($common + @('/SSO=0',"/DIR=`"$testRoot/Server`"", "/LOG=`"$testRoot/upgrade.log`""))

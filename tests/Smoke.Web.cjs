@@ -60,7 +60,8 @@ async function ready(url) {
     await api('/machines/' + machine.body.id, token, 'PUT', { ...data, entitledUserIds: [] });
     check((await api('/machines/' + machine.body.id, member)).status === 404, 'Revoked assignment blocks next native launch lookup');
     check((await api('/users/' + login.body.userId + '/role', token, 'PUT', { isAdmin: false, canAccessAdminConsole: false })).status === 400, 'Last local administrator is protected');
-    const screenshotDir = path.join(root, 'docs/ui'); fs.mkdirSync(screenshotDir, { recursive: true });
+    // Documentation screenshots come from Screenshots.Web.cjs; smoke captures stay in the temp folder.
+    const screenshotDir = path.join(temp, 'screenshots'); fs.mkdirSync(screenshotDir, { recursive: true });
     browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined });
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = []; page.on('pageerror', error => errors.push(error.message));

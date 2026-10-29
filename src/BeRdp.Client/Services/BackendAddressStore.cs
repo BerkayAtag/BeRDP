@@ -13,7 +13,7 @@ public static class BackendAddressStore
             (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) ||
             !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
         {
-            throw new InvalidOperationException("Sunucu adresi geçerli bir HTTP/HTTPS adresi olmalıdır (örnek: http://sunucu:5001).");
+            throw new InvalidOperationException("Sunucu adresi geçerli bir HTTP/HTTPS adresi olmalıdır (örnek: https://berdp.example.test/api).");
         }
 
         if (uri.Scheme == Uri.UriSchemeHttp && !uri.IsLoopback)

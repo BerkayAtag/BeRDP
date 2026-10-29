@@ -1,6 +1,6 @@
 # İlk yönetici ve kurtarma
 
-1.6.0 hiçbir kullanıcı, parola veya demo makine üretmez. Setup yalnızca servisleri ve sunucuya özgü rastgele JWT anahtarını yapılandırır.
+BeRDP hiçbir kullanıcı, parola veya demo makine üretmez. Setup servisleri ve sunucuya özgü rastgele JWT anahtarını yapılandırır; ilk yönetici hesabını yalnız kurulum sihirbazında sizin girdiğiniz bilgilerle oluşturur.
 
 ## İlk kurulum
 

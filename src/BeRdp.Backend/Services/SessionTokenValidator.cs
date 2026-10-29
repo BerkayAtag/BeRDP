@@ -59,9 +59,9 @@ public sealed class SessionTokenValidator(AppDbContext dbContext, UserAuthorizat
         {
             identity.RemoveClaim(claim);
         }
-        identity.AddClaim(new Claim("CanAccessAdminConsole",
-            user.CanAccessAdminConsole ? "true" : "false"));
-        identity.AddClaim(new Claim("ConsoleRole", user.ConsoleRole.ToString()));
+        var console = UserAuthorizationService.EffectiveConsoleAccess(user, isAdmin);
+        identity.AddClaim(new Claim("CanAccessAdminConsole", console.CanAccess ? "true" : "false"));
+        identity.AddClaim(new Claim("ConsoleRole", console.Role.ToString()));
         return true;
     }
 }

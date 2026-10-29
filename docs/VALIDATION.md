@@ -1,6 +1,20 @@
 # Doğrulama kaydı
 
-28 Ekim 2026, Windows geliştirme ortamı.
+## 1.7.0 — 29 Ekim 2026
+
+| Kontrol | Sonuç |
+|---|---|
+| .NET regresyon çalıştırıcısı | 139 kontrol geçti (yeni: atama adı gizliliği, AD grup konsol yetkisi, yerel ad doğrulaması, setup parola aktarımı) |
+| Native service setup self-test | Geçti |
+| Gerçek HTTP + tarayıcı smoke | 12 kontrol geçti (Edge headless) |
+| Tarayıcı davranış regresyonu | 38 kontrol geçti |
+| NuGet bağımlılık taraması (4 üretim projesi, transitive dahil) | Bilinen açık raporlanmadı |
+| Inno Setup derlemesi | İki paket derlendi; setup ve uygulama exe'lerinde CompanyName `Berkay Atağ`, ProductVersion `1.7.0`, kırmızı BeRDP simgesi |
+| Tanıtım sayfası | Edge 1440 ve 390 piksel, açık/koyu tema: görseller yüklendi, yatay taşma ve JavaScript hatası yok, tema tercihi kalıcı |
+
+Temiz Windows kurulum/yeniden kurulum/kaldırma, appwiz Publisher/sürüm/simge kaydı ve setup sihirbazının ilk yönetici oluşturma yolu `main` üzerindeki Validate BeRDP çalışmasında (`tests/Smoke.Installers.ps1`) doğrulanır; release yalnız bu çalışmanın artifact'inden yayımlanır. Sihirbaz ekranları bu geliştirme bilgisayarında etkileşimli kurulumla denenmemiştir, çünkü kurulum servis ve sistem ayarı değiştirir.
+
+## 1.6.0 — 28 Ekim 2026, Windows geliştirme ortamı
 
 | Kontrol | Sonuç |
 |---|---|
@@ -25,7 +39,7 @@ Docker Desktop Linux container içinde 6 HTTPS kontrolü geçti: sertifika ve ho
 
 `appwiz.cpl` Publisher kaydı her iki Inno tanımında `AppPublisher=Berkay Atağ` olarak belirlenir. EXE CompanyName alanı ayrıca doğrulandı; Gerçek kurulum sonrası uninstall registry kaydı GitHub-hosted Windows ortamında test edildi ve her iki paket için tam olarak `Berkay Atağ` bulundu.
 
-## Gerçek Windows paket kabulü
+### Gerçek Windows paket kabulü (1.6.0)
 
 [Başarılı Windows CI çalışması](https://github.com/BerkayAtag/BeRDP/actions/runs/40738303817) kaynak commit `5858914a5551863979932c3f2c2ed5fb0b67d79a` üzerinden 4m33s içinde tamamlandı:
 

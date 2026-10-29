@@ -1,9 +1,11 @@
 <Project>
   <PropertyGroup>
-    <Version>1.6.0</Version>
+    <Version>1.7.0</Version>
     <Authors>Berkay Atağ</Authors>
     <Company>Berkay Atağ</Company>
     <Copyright>Copyright (c) 2026 Berkay Atağ</Copyright>
+    <Product>BeRDP</Product>
+    <ApplicationIcon>$(MSBuildThisFileDirectory)branding\BeRDP.ico</ApplicationIcon>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>

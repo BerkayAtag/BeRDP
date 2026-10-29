@@ -151,6 +151,7 @@ public class AuthController(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var token = jwtTokenService.GenerateToken(user, effectiveIsAdmin, adGroupNames);
+        var console = UserAuthorizationService.EffectiveConsoleAccess(user, effectiveIsAdmin);
         return new LoginResponse
         {
             UserId = user.Id,
@@ -161,8 +162,8 @@ public class AuthController(
             RdpUsername = ResolveRdpUsername(user),
             Token = token,
             LastLoginAtUtc = previousLastLogin,
-            CanAccessAdminConsole = user.CanAccessAdminConsole,
-            ConsoleRole = user.ConsoleRole
+            CanAccessAdminConsole = console.CanAccess,
+            ConsoleRole = console.Role
         };
     }
 

@@ -1,10 +1,14 @@
-# BeRDP 1.6.0 kurulum ve işletim
+# BeRDP 1.7.0 kurulum ve işletim
 
 ## Ön koşullar
 
 Windows x64; desteklenen Windows 11 / Windows Server sürümünde kurum pilotu yapılmalıdır. Paketler self-contained .NET 10 içerir. Yönetici yetkisi, kurum DNS adı ve güvenilir TLS sertifikası gerekir. AD/SSO isteğe bağlıdır. Hedef VM'lerde RDP/NLA ve kullanıcı oturum açma hakları kurum tarafından yönetilir; BeRDP ajanı gerekmez.
 
 ## Sunucu
+
+Etkileşimli kurulum için `BeRDP.Server.Setup.exe` dosyasını çift tıklayın. Sihirbaz yalnız ilk yönetici kullanıcı adını ve parolasını (en az 14 karakter) sorar; mevcut bir BeRDP veritabanı varsa bu sayfa atlanır. Parola komut satırına, kurulum günlüğüne veya dosyaya yazılmaz. Kurulum bitince yönetim konsolu `http://localhost:5173` adresinde açılır; Başlat menüsünde konsol, servisler ve kaldırma kısayolları bulunur.
+
+Sessiz kurulum:
 
 ```powershell
 .\BeRDP.Server.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SSO=0 /LOG="$env:TEMP\BeRDP-Server.log"
@@ -14,7 +18,7 @@ Varsayılan uygulama dizini `C:\Program Files\BeRDP\Server`; veriler `C:\Program
 
 Backend dizini, veritabanı ve DataProtectionKeys dizini SYSTEM, yerel Administrators ve mevcut backend servis hesabına sınırlandırılır. Özel veri yolu **yalnız BeRDP'ye ayrılmış** bir dizin olmalıdır; ortak klasör veya sürücü kökü kullanmayın. Mevcut özel servis hesabı korunur; hesap değişiminde ACL ve DPAPI anahtar erişimini ayrıca doğrulayın. Varsayılan servis kimliği LocalSystem'dır; kurumsal pilotta en az yetkili servis hesabına geçiş planlayın.
 
-[İlk yöneticiyi oluşturun](Admin-Credentials.md). Varsayılan hesap veya parola yoktur.
+Sessiz kurulumda [ilk yöneticiyi komut satırından oluşturun](Admin-Credentials.md). Varsayılan hesap veya parola yoktur.
 
 ## HTTPS yayını
 
@@ -32,6 +36,8 @@ Bu uygulama güvenilmeyen forwarded header'ları kabul etmez. Reverse proxy arka
 Windows Negotiate, bağlantıya bağlı kimlik doğrulamasıdır. Her reverse proxy Kerberos/NTLM aktarımını doğru yapmaz. SSO için SPN, DNS, servis kimliği, kanal/bağlantı affinity ve tarayıcı intranet politikasını kurumun desteklenen IIS/Kerberos mimarisiyle doğrulayın. Parola girişli pilot ile başlayıp SSO'yu ayrı kabul edin. TLS sertifikası denetimini kapatmayın.
 
 ## İstemci
+
+Etkileşimli kurulumda sihirbaz yalnız sunucu adresini sorar ve aynı sayfada doğrular. Toplu dağıtım:
 
 ```powershell
 .\BeRDP.Client.Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /TASKS="desktopicon" /BACKENDURL="https://berdp.example.test/api" /SSO=0 /LOG="$env:TEMP\BeRDP-Client.log"
