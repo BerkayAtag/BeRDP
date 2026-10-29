@@ -12,7 +12,7 @@
 | Inno Setup derlemesi | İki paket derlendi; setup ve uygulama exe'lerinde CompanyName `Berkay Atağ`, ProductVersion `1.7.0`, kırmızı BeRDP simgesi |
 | Tanıtım sayfası | Edge 1440 ve 390 piksel, açık/koyu tema: görseller yüklendi, yatay taşma ve JavaScript hatası yok, tema tercihi kalıcı |
 
-Temiz Windows kurulum/yeniden kurulum/kaldırma, appwiz Publisher/sürüm/simge kaydı ve setup sihirbazının ilk yönetici oluşturma yolu `main` üzerindeki Validate BeRDP çalışmasında (`tests/Smoke.Installers.ps1`) doğrulanır; release yalnız bu çalışmanın artifact'inden yayımlanır. Sihirbaz ekranları bu geliştirme bilgisayarında etkileşimli kurulumla denenmemiştir, çünkü kurulum servis ve sistem ayarı değiştirir.
+Temiz Windows kurulum/yeniden kurulum/kaldırma, appwiz Publisher/sürüm/simge kaydı ve setup sihirbazının ilk yönetici oluşturma yolu `main` üzerindeki Validate BeRDP çalışmasında (`tests/Smoke.Installers.ps1`) doğrulanır: [1.7.0 çalışması](https://github.com/BerkayAtag/BeRDP/actions/runs/40928004088), commit `eed9fc0`, 5 dk 17 sn, başarılı; release yalnız bu çalışmanın artifact'inden yayımlanır. Sihirbaz ekranları bu geliştirme bilgisayarında etkileşimli kurulumla denenmemiştir, çünkü kurulum servis ve sistem ayarı değiştirir.
 
 ## 1.6.0 — 28 Ekim 2026, Windows geliştirme ortamı
 
