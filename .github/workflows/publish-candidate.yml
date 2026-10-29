@@ -39,7 +39,9 @@ jobs:
           [[ "$RUN_ID" =~ ^[0-9]+$ ]]
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]
           VERSION="${TAG#v}"
-          echo "VERSION=${VERSION%%-*}" >> "$GITHUB_ENV"
+          # GITHUB_ENV applies to later steps; export for the checks in this step too.
+          export VERSION="${VERSION%%-*}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           gh api "repos/$GH_REPO/actions/runs/$RUN_ID" > run.json
           python3 - <<'PY'
           import json, os
