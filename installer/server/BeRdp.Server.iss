@@ -131,7 +131,8 @@ end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
-  Result := (PageID = AdminPage.ID) and not IsFreshDatabase;
+  // Silent installs never prompt; the administrator is created later from the command line.
+  Result := (PageID = AdminPage.ID) and (WizardSilent or not IsFreshDatabase);
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -139,7 +140,7 @@ var
   Name: String;
 begin
   Result := True;
-  if CurPageID <> AdminPage.ID then
+  if WizardSilent or (CurPageID <> AdminPage.ID) then
     exit;
   Name := Lowercase(Trim(AdminPage.Values[0]));
   if not IsValidAdminName(Name) then

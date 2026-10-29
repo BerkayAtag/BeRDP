@@ -207,7 +207,8 @@ var
   ValidationError: String;
 begin
   Result := True;
-  if CurPageID <> BackendUrlPage.ID then
+  // Silent installs are validated in PrepareToInstall, which never shows a dialog.
+  if WizardSilent or (CurPageID <> BackendUrlPage.ID) then
     exit;
   BackendUrlPage.Values[0] := Trim(BackendUrlPage.Values[0]);
   if BackendUrlPage.Values[0] = '' then

@@ -47,7 +47,8 @@ try {
     $adminPassword = 'Ci-' + [guid]::NewGuid().ToString('N')
     $env:BERDP_SETUP_ADMIN_PASSWORD = $adminPassword
     try {
-        $bootstrap = Start-Process -FilePath (Join-Path $backendRoot 'BeRdp.Backend.exe') -ArgumentList @('--contentRoot', "`"$backendRoot`"", '--bootstrap-admin', 'ci-admin') -WorkingDirectory $backendRoot -WindowStyle Hidden -PassThru -Wait
+        $bootstrap = Start-Process -FilePath (Join-Path $backendRoot 'BeRdp.Backend.exe') -ArgumentList @('--contentRoot', "`"$backendRoot`"", '--bootstrap-admin', 'ci-admin') -WorkingDirectory $backendRoot -WindowStyle Hidden -PassThru
+        if (-not $bootstrap.WaitForExit(120000)) { $bootstrap.Kill(); throw 'First administrator bootstrap did not finish within 2 minutes' }
     } finally { Remove-Item Env:BERDP_SETUP_ADMIN_PASSWORD -ErrorAction SilentlyContinue }
     if ($bootstrap.ExitCode -ne 0) { throw "First administrator bootstrap failed with exit code $($bootstrap.ExitCode)" }
     $adminLogin = Invoke-WebRequest 'http://127.0.0.1:5001/login' -Method Post -ContentType 'application/json' -Body (@{ username = 'ci-admin'; password = $adminPassword } | ConvertTo-Json) -SkipHttpErrorCheck
