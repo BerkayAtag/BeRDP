@@ -229,23 +229,24 @@ var clone = displayOptions.Clone();
 clone.SelectedMonitorDevices.Clear();
 Check(displayOptions.SelectedMonitorDevices.Count == 1, "Saved options clone is independent");
 Check(RdpProfileWriter.Endpoint("2001:db8::1", 3390) == "[2001:db8::1]:3390", "IPv6 RDP endpoint is bracketed");
+Check(new MachineRdpLocalResourceOptions { UseRemoteCredentialGuard = true }.Clone().UseRemoteCredentialGuard, "Remote Credential Guard selection survives cloning");
 var profile = RdpProfileWriter.Build("192.0.2.1", 3389, @"CORP\test", displayOptions, monitors);
 Check(profile.Contains("session bpp:i:32") &&
     profile.Contains("redirectclipboard:i:1"), "RDP profile keeps modern graphics and resource redirects");
-Check(profile.Contains("connection type:i:3") && profile.Contains("networkautodetect:i:0") &&
-    profile.Contains("bandwidthautodetect:i:0"),
-    "RDP Experience selects the Satellite connection speed with auto detection off");
+Check(profile.Contains("connection type:i:7") && profile.Contains("networkautodetect:i:1") &&
+    profile.Contains("bandwidthautodetect:i:1"),
+    "RDP adapts bandwidth and network quality for LAN and VPN");
 Check(profile.Contains("allow font smoothing:i:1") && profile.Contains("allow desktop composition:i:1") &&
     profile.Contains("disable themes:i:0"),
     "RDP Experience enables font smoothing, desktop composition and visual styles");
 Check(profile.Contains("disable wallpaper:i:1") && profile.Contains("disable full window drag:i:1") &&
     profile.Contains("disable menu anims:i:1") && profile.Contains("bitmapcachepersistenable:i:0") &&
-    profile.Contains("autoreconnection enabled:i:0"),
-    "RDP Experience disables every other performance option");
+    profile.Contains("autoreconnection enabled:i:1"),
+    "RDP reconnects after brief network interruptions");
 Check(!profile.Contains("bitmapcachepersistenable:i:1") &&
-    !profile.Contains("autoreconnection enabled:i:1") &&
-    !profile.Contains("networkautodetect:i:1"),
-    "RDP profile never re-enables a disabled Experience option");
+    profile.Contains("autoreconnection enabled:i:1") &&
+    profile.Contains("networkautodetect:i:1"),
+    "RDP supports recovery without persistent bitmap caching");
 ExpectInvalid(() => RdpProfileWriter.Build("192.0.2.1", 3389, "test\r\ninjected", displayOptions, monitors),
     "RDP username cannot inject settings");
 Check(BackendAddressStore.Validate("https://server:5001").AbsoluteUri == "https://server:5001/",
@@ -277,6 +278,16 @@ var resolvedPortal = await BackendEndpointResolver.ResolveAsync(
 Check(resolvedPortal.WasCorrected && resolvedPortal.Address.Port == 5001 &&
       !string.IsNullOrWhiteSpace(resolvedPortal.Notice),
     "A console URL is corrected to the API before login");
+using (var cancelledDiscovery = new CancellationTokenSource())
+{
+    cancelledDiscovery.Cancel();
+    try
+    {
+        await BackendEndpointResolver.ResolveAsync("http://localhost:5173", (_, _) => Task.FromResult<Uri?>(null), cancelledDiscovery.Token);
+        throw new InvalidOperationException("Cancelled discovery was not cancelled");
+    }
+    catch (OperationCanceledException) { Check(true, "Closing login cancels endpoint discovery instead of continuing to authentication"); }
+}
 var resolvedApi = await BackendEndpointResolver.ResolveAsync(
     "https://server:5001",
     (_, _) => Task.FromResult<Uri?>(null),
@@ -284,12 +295,14 @@ var resolvedApi = await BackendEndpointResolver.ResolveAsync(
 Check(!resolvedApi.WasCorrected && resolvedApi.Notice is null,
     "A valid backend address is left unchanged");
 var ssoProfile = RdpProfileWriter.Build("vm01.corp.example", 3389, "upn@corp.example", displayOptions, monitors, true);
+Check(!ssoProfile.Contains("username:s:") && ssoProfile.Contains("prompt for credentials:i:0"), "Remote Credential Guard does not request a delegated password");
+Check(profile.Contains("prompt for credentials:i:1") && profile.Contains("enablecredsspsupport:i:1"), "Default RDP uses native credential prompt and retains NLA");
 var promptProfile = RdpProfileWriter.Build("vm01.corp.example", 3389, @"CORP\sam123", displayOptions, monitors, false, true);
 Check(promptProfile.Contains("prompt for credentials:i:1") &&
     promptProfile.Contains(@"username:s:CORP\sam123") &&
     promptProfile.Contains("redirectsmartcards:i:0") &&
     promptProfile.Contains("redirectwebauthn:i:0"),
-    "Prompt profile instructs mstsc to prompt domain credentials and blocks Windows Hello PIN hijacking");
+    "Prompt profile requests credentials and honors local resource preferences");
 Check(ssoProfile.Contains("full address:s:vm01.corp.example") &&
     ssoProfile.Contains("enablecredsspsupport:i:1") && !ssoProfile.Contains("password 51"),
     "SSO profile keeps DNS and NLA without embedding a password");
@@ -326,7 +339,8 @@ Check(!ActiveDirectoryIdentity.Matches(imported, directoryUser), "Local accounts
 using var services = new ServiceCollection().AddLogging().AddSignalR().Services.BuildServiceProvider();
 var hubContext = services.GetRequiredService<IHubContext<AssignmentsHub>>();
 var authService = new UserAuthorizationService(context);
-var machinesController = new MachinesController(context, hubContext, new RegressionAvailability())
+var availabilityProbe = new RegressionAvailability();
+var machinesController = new MachinesController(context, hubContext, availabilityProbe)
 {
     ControllerContext = new ControllerContext
     {
@@ -363,7 +377,7 @@ context.Machines.Add(new BeRdp.Backend.Models.Machine
 context.SaveChanges();
 var assignedResult = await machinesController.GetMachines(null, 0, 500, true, CancellationToken.None);
 var assignedMachines = (IReadOnlyList<MachineResponse>)((OkObjectResult)assignedResult.Result!).Value!;
-// Admin users can see ALL machines even with assignedOnly=true (10 seeded + 2 created in test)
+Check(availabilityProbe.Targets.Contains("vm02.corp.example"), "Availability probes use the same DNS target as native RDP");
 Check(assignedMachines.Count == 1 && assignedMachines.Any(m => m.Id == machineId) && !assignedMachines.Any(m => m.Name == "Unassigned VM"),
     "Desktop clients receive only assigned machines, including administrators");
 machinesController.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity([
@@ -478,11 +492,12 @@ context.Users.AddRange(
     new User { Username = @"corp.example\shared01", DisplayName = "Shared AD", IsActiveDirectoryUser = true, DomainName = "corp.example" });
 context.SaveChanges();
 
+var loginDirectory = new RegressionDirectoryService();
 var authController = new AuthController(
     context,
     new JwtTokenService(configuration),
     directoryConfig,
-    new RegressionDirectoryService(),
+    loginDirectory,
     new UserAuthorizationService(context),
     NullLogger<AuthController>.Instance,
     configuration)
@@ -567,6 +582,7 @@ Check(adLogin.IsActiveDirectoryUser && adLogin.Username == @"corp.example\aduser
 await LoginOkAsync(@"corp\aduser", "AdPass123!", "AD user logs in with the NetBIOS domain prefix");
 await LoginOkAsync(@"corp.example\aduser", "AdPass123!", "AD user logs in with the DNS domain prefix");
 await LoginOkAsync("aduser@corp.example", "AdPass123!", "AD user logs in with the stored UPN");
+Check(loginDirectory.LastValidatedUsername == "aduser@corp.example", "AD authentication uses the canonical UPN rather than a stored domain alias");
 await LoginOkAsync("aduser@CORP", "AdPass123!", "AD user logs in with a NetBIOS UPN suffix");
 await LoginOkAsync("noupn@corp.example", "AdPass123!", "AD user without a stored UPN resolves through its domain");
 Check((await authController.Login(new LoginRequest { Username = "otheruser@staff.example", Password = "AdPass123!" }, CancellationToken.None)).Result is UnauthorizedObjectResult, "Foreign directory account cannot authenticate against configured domain");
@@ -611,6 +627,7 @@ Console.WriteLine($"SUCCESS: {passed} regression checks passed.");
 sealed class RegressionDirectoryService : IActiveDirectoryService
 {
     private const string Password = "AdPass123!";
+    public string? LastValidatedUsername { get; private set; }
     public IReadOnlyList<string> Groups { get; set; } = [];
     public bool Unavailable { get; set; }
 
@@ -628,7 +645,10 @@ sealed class RegressionDirectoryService : IActiveDirectoryService
         string password,
         ActiveDirectoryConfiguration configuration,
         CancellationToken cancellationToken)
-        => Task.FromResult(password == Password);
+    {
+        LastValidatedUsername = username;
+        return Task.FromResult(password == Password);
+    }
 
     public Task<IReadOnlyList<ActiveDirectoryDirectoryUser>> SearchUsersAsync(
         string query,
@@ -654,6 +674,10 @@ sealed class RegressionDirectoryService : IActiveDirectoryService
 
 sealed class RegressionAvailability : IRdpAvailabilityService
 {
+    public List<string> Targets { get; } = [];
     public Task<bool> IsAvailableAsync(string ipAddress, int port, CancellationToken cancellationToken)
-        => Task.FromResult(true);
+    {
+        Targets.Add(ipAddress);
+        return Task.FromResult(true);
+    }
 }

@@ -1,5 +1,5 @@
 ﻿#define AppName "BeRDP Server"
-#define AppVersion "1.7.0"
+#define AppVersion "1.8.0"
 #define AppPublisher "Berkay Atağ"
 #define ConsoleUrl "http://localhost:5173/"
 

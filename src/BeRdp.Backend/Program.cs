@@ -302,7 +302,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.MapControllers();
-app.MapHub<AssignmentsHub>("/hubs/assignments");
+app.MapHub<AssignmentsHub>("/hubs/assignments", options => options.CloseOnAuthenticationExpiration = true);
 app.MapGet("/health", async Task<IResult> (AppDbContext dbContext, CancellationToken cancellationToken) =>
     await dbContext.Database.CanConnectAsync(cancellationToken)
         ? Results.Ok(new { status = "ok" })

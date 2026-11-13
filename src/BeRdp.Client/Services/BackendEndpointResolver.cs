@@ -39,8 +39,10 @@ public static partial class BackendEndpointResolver
         Uri? discovered = null;
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             discovered = await discover(configured, cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or
                                    InvalidOperationException or FormatException or UriFormatException)
         {

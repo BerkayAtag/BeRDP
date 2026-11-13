@@ -22,7 +22,7 @@ public partial class MainWindow : Window
     private readonly LoginResponse _session;
     private readonly SessionCredential _sessionCredential;
     private readonly RdpOptionStore _rdpOptionStore = new();
-    private readonly RdpCredentialStore _credentials = new();
+    private readonly HashSet<Guid> _launching = [];
     private readonly DispatcherTimer _pollingTimer;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly SemaphoreSlim _refreshGate = new(1);
@@ -219,7 +219,8 @@ public partial class MainWindow : Window
     private async void ConnectButton_OnClick(object sender, RoutedEventArgs e)
     {
         if (_closing || sender is not FrameworkElement { Tag: MachineCardViewModel machine }) { return; }
-        IReadOnlyList<string> targets = [];
+        var machineId = machine.Id;
+        if (!_launching.Add(machineId)) { return; }
         string? filePath = null;
         var tracked = false;
         try
@@ -230,41 +231,14 @@ public partial class MainWindow : Window
             var username = ResolveRdpUsername();
             var address = machine.RdpHostName ?? machine.IpAddress;
 
-            string passwordToUse = _sessionCredential.Password;
-            bool promptInMstsc = false;
-
-            // If we do not have an AD password in memory (e.g. logged in with Windows Hello SSO):
-            if (string.IsNullOrEmpty(passwordToUse))
-            {
-                var promptDialog = new RdpCredentialPromptWindow(username) { Owner = this };
-                var result = promptDialog.ShowDialog();
-                if (result != true || !promptDialog.Confirmed)
-                {
-                    return; // User cancelled
-                }
-
-                if (promptDialog.UseMstscPrompt)
-                {
-                    promptInMstsc = true;
-                }
-                else
-                {
-                    passwordToUse = promptDialog.EnteredPassword;
-                    if (promptDialog.RememberForSession)
-                    {
-                        _sessionCredential.Password = passwordToUse;
-                    }
-                }
-            }
-
             var content = RdpProfileWriter.Build(
                 address,
                 machine.RdpPort,
                 username,
                 options,
                 MonitorCatalog.GetActiveMonitors(),
-                useWindowsSso: false,
-                promptForCredentials: promptInMstsc
+                useWindowsSso: options.UseRemoteCredentialGuard,
+                promptForCredentials: !options.UseRemoteCredentialGuard
             );
 
             var directory = Path.Combine(Path.GetTempPath(), "BeRDP", "RdpSessions");
@@ -272,23 +246,17 @@ public partial class MainWindow : Window
             filePath = Path.Combine(directory, $"beRdp-{machine.Id:N}-{Guid.NewGuid():N}.rdp");
             File.WriteAllText(filePath, content, Encoding.Unicode);
 
-            if (!promptInMstsc && !string.IsNullOrEmpty(passwordToUse))
-            {
-                var endpoint = RdpProfileWriter.Endpoint(address, machine.RdpPort);
-                targets = await _credentials.AcquireAsync([address, endpoint], username, passwordToUse, _lifetime.Token);
-            }
-
             _lifetime.Token.ThrowIfCancellationRequested();
 
             var process = Process.Start(new ProcessStartInfo
             {
                 FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "mstsc.exe"),
-                Arguments = $"\"{filePath}\"",
+                Arguments = $"\"{filePath}\"" + (options.UseRemoteCredentialGuard ? " /remoteGuard" : " /prompt"),
                 UseShellExecute = false
             }) ?? throw new InvalidOperationException("RDP başlatılamadı.");
 
             tracked = true;
-            _ = TrackRdpProcessExitAsync(process, targets, filePath);
+            _ = TrackRdpProcessExitAsync(process, filePath);
         }
         catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or IOException or UnauthorizedAccessException or HttpRequestException)
         {
@@ -297,11 +265,10 @@ public partial class MainWindow : Window
         catch (OperationCanceledException) { if (!_closing) ShowError("Bağlantı doğrulaması zaman aşımına uğradı."); }
         finally
         {
+            _launching.Remove(machineId);
             if (!tracked)
             {
                 if (filePath is not null) { DeleteTemporaryFile(filePath); }
-                try { await _credentials.ReleaseAsync(targets); }
-                catch (InvalidOperationException ex) { ShowError(ex.Message); }
             }
         }
     }
@@ -349,17 +316,6 @@ public partial class MainWindow : Window
             Trace.TraceWarning($"SignalR shutdown failed: {ex.Message}");
         }
         finally { _hubStartGate.Release(); }
-        try
-        {
-            await _credentials.ReleaseAllAsync();
-        }
-        catch (InvalidOperationException ex)
-        {
-            ShowError(ex.Message + " Temizliği tekrar denemek için pencereyi yeniden kapatın.");
-            _closing = false;
-            return;
-        }
-        _sessionCredential.Password = string.Empty;
         _apiClient.Dispose();
         if (_returnToLogin)
         {
@@ -372,7 +328,7 @@ public partial class MainWindow : Window
         Close();
     }
 
-    private async Task TrackRdpProcessExitAsync(Process process, IReadOnlyList<string> targets, string filePath)
+    private async Task TrackRdpProcessExitAsync(Process process, string filePath)
     {
         try { await process.WaitForExitAsync(); }
         catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
@@ -383,20 +339,13 @@ public partial class MainWindow : Window
         {
             process.Dispose();
             DeleteTemporaryFile(filePath);
-            try { await _credentials.ReleaseAsync(targets); }
-            catch (InvalidOperationException ex)
-            {
-                Trace.TraceWarning(ex.Message);
-                if (!_closing && !Dispatcher.HasShutdownStarted)
-                {
-                    await Dispatcher.InvokeAsync(() => ShowError(ex.Message));
-                }
-            }
+
         }
     }
 
     private string ResolveRdpUsername()
     {
+        if (!_session.IsActiveDirectoryUser) { return string.Empty; }
         if (!string.IsNullOrWhiteSpace(_session.RdpUsername)) { return _session.RdpUsername; }
         var input = _sessionCredential.InputUsername.Trim();
         if (input.Contains('\\') || input.Contains('@')) { return input; }

@@ -11,7 +11,7 @@
   <a href="CHANGELOG.md">Değişiklikler</a>
 </p>
 
-<p align="center">1.7.0 · Windows x64 · .NET 10 (pakete dahil) · MIT · Berkay Atağ</p>
+<p align="center">1.8.0 · Windows x64 · .NET 10 (pakete dahil) · MIT · Berkay Atağ</p>
 
 BeRDP, kurum içindeki RDP makinelerini, kullanıcıları ve Active Directory grup atamalarını tek yerden yönetir. Windows istemcisi yerleşik `mstsc.exe` ile bağlanır; web konsolu envanter ve erişim yönetimini sunar. Hedef VM'lere BeRDP ajanı yüklemek gerekmez.
 
@@ -23,7 +23,7 @@ BeRDP, kurum içindeki RDP makinelerini, kullanıcıları ve Active Directory gr
 ## Neler yapar?
 
 - **Kimliğe bağlı erişim:** Makineleri kişilere veya AD gruplarına atayın; atama her bağlantıdan hemen önce sunucuda yeniden doğrulanır.
-- **Windows ile doğal bağlantı:** WPF istemcisi `mstsc` ile bağlanır; makine arama, çoklu ekran, çözünürlük ve yerel kaynak seçimi, açık/koyu tema.
+- **Windows ile doğal bağlantı:** WPF istemcisi Windows kimlik ekranı veya isteğe bağlı Remote Credential Guard ile `mstsc` açar. Parola saklamaz; makine arama, çoklu ekran, çözünürlük ve yerel kaynak seçimi sunar.
 - **Active Directory ve SSO:** AD kullanıcı/grup arama, grup bazlı yönetici yetkisi, isteğe bağlı Windows Negotiate (Kerberos) girişi.
 - **Rol tabanlı konsol:** Tam yetkili yönetici, salt okunur konsol ve yalnız masaüstü kullanıcısı; yetki değişikliği bir sonraki istekte geçerlidir.
 - **Güvenli varsayılanlar:** Varsayılan parola veya demo hesap yok; servisler yalnız loopback dinler, uzak erişim HTTPS ister, anahtarlar DPAPI ile korunur.

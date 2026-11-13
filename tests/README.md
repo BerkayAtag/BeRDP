@@ -12,7 +12,7 @@ Live API/browser checks use Playwright installed outside production projects. In
 
 `DemoFixture.cs` is test-only; it must never be linked into backend production code. Historical tests use synthetic identities; their credentials are not valid product credentials.
 
-Old PowerShell smoke scripts describe legacy deployments and are not the release acceptance gate; use the .NET runner and Smoke.Web.cjs for 1.7.0. See docs/VALIDATION.md for environment-dependent test gaps.
+Old PowerShell smoke scripts describe legacy deployments and are not the release acceptance gate; use the .NET runner and Smoke.Web.cjs for 1.8.0. See docs/VALIDATION.md for environment-dependent test gaps.
 
 `node tests/Screenshots.Web.cjs` uses the same Playwright setup to regenerate the light/dark product screenshots in `docs/ui` from a temporary database with synthetic users and machines.
 

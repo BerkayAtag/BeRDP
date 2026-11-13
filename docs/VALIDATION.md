@@ -1,5 +1,14 @@
 # Doğrulama kaydı
 
+## 1.8.0 — 13 Kasım 2026
+
+- Windows geliştirme ortamı, .NET SDK 10.0.404: 145 regresyon kontrolü geçti. Yeni kontroller Windows kimlik ekranı/Remote Credential Guard profilleri, DNS durum hedefi, UPN ile AD doğrulaması ve iptal edilen giriş keşfini kapsar.
+- Native ServiceSetup self-test geçti: yapılandırma koruma, yedek, SSO ve kilitli dosya davranışı.
+- Edge headless: 12 gerçek HTTP/tarayıcı ve 38 arayüz regresyon kontrolü geçti. Yalnız geçici veritabanı ve sentetik hesaplar kullanıldı.
+- Temiz Windows kurulum kabulü ve paketler `Validate BeRDP` CI çalışmasında ayrıca doğrulanır; yayın iş akışı yalnız başarılı çalışmanın artifact'ini kabul eder. Canlı tarayıcı kontrolleri artık bu kapının parçasıdır.
+
+Gerçek domain, hedef VM, Kerberos/Remote Credential Guard, GPO/WDAC/EDR, fiziksel çoklu monitör ve üretim verisiyle yükseltme bu geliştirme bilgisayarında doğrulanmadı. Kurum pilotu gerekir; bu kayıt tüm Windows politikalarında sorunsuz çalışma garantisi değildir.
+
 ## 1.7.0 — 29 Ekim 2026
 
 | Kontrol | Sonuç |

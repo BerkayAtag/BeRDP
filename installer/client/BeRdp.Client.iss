@@ -1,5 +1,5 @@
 ﻿#define AppName "BeRDP Client"
-#define AppVersion "1.7.0"
+#define AppVersion "1.8.0"
 #define AppPublisher "Berkay Atağ"
 
 #ifndef RepoRoot
@@ -56,8 +56,6 @@ Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Masaüstü kısayolu oluştur"; GroupDescription: "Ek kısayollar:"
-; RDP hedef ayarı yalnız sessiz/kurumsal dağıtımda (/TASKS=rdphost) seçilebilir.
-Name: "rdphost"; Description: "Bu bilgisayarı RDP hedefi olarak yapılandır (GPU, AVC444, TCP/UDP firewall)"; GroupDescription: "Makine rolü:"; Flags: unchecked; Check: WizardSilent
 
 [Files]
 Source: "{#RepoRoot}\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
@@ -73,11 +71,7 @@ Name: "{autodesktop}\BeRDP Client"; Filename: "{app}\BeRdp.Client.exe"; IconFile
 Root: HKLM; Subkey: "SOFTWARE\BeRDP\Client"; ValueType: string; ValueName: "BackendBaseUrl"; ValueData: "{code:ClientBackendUrl}"; Flags: uninsdeletevalue
 Root: HKLM; Subkey: "SOFTWARE\BeRDP\Client"; ValueType: dword; ValueName: "UseWindowsSso"; ValueData: "{code:ClientSsoFlag}"; Flags: uninsdeletevalue
 ; Windows RDP consent and enterprise client policies are preserved.
-; RDP host: prefer UDP/TCP, AVC444, hardware encoding, and the hardware GPU renderer.
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services"; ValueType: dword; ValueName: "SelectTransport"; ValueData: "2"; Tasks: rdphost
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services"; ValueType: dword; ValueName: "AVC444ModePreferred"; ValueData: "1"; Tasks: rdphost
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services"; ValueType: dword; ValueName: "AVCHardwareEncodePreferred"; ValueData: "1"; Tasks: rdphost
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services"; ValueType: dword; ValueName: "bEnumerateHWBeforeSW"; ValueData: "1"; Tasks: rdphost
+; Host graphics, transport, authentication and firewall are managed by Windows/GPO.
 
 [Run]
 Filename: "{app}\BeRdp.Client.exe"; Description: "BeRDP Client'ı başlat"; Flags: nowait postinstall skipifsilent runasoriginaluser
@@ -222,19 +216,11 @@ begin
   end;
 end;
 
-function RdpPort: String;
-var
-  Port: Integer;
-begin
-  Result := ExpandConstant('{param:RDPPORT|3389}');
-  Port := StrToIntDef(Result, 0);
-  if (Port < 1) or (Port > 65535) then
-    RaiseException('RDPPORT 1-65535 arasında bir tam sayı olmalıdır.');
-end;
-
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := ValidateRdpWarningParameter;
+  if Pos('rdphost', Lowercase(ExpandConstant('{param:TASKS|}') + ',' + ExpandConstant('{param:MERGETASKS|}'))) > 0 then
+    Result := 'rdphost görevi kaldırıldı. Hedef RDP ayarlarını merkezi Windows/GPO yönetimiyle yapılandırın.';
   if Result <> '' then
   begin
     Log('ERROR: ' + Result);
@@ -248,15 +234,6 @@ begin
     exit;
   end;
   Result := ValidateBackendUrl(DeploymentUrl, DeploymentSso);
-  if (Result = '') and WizardIsTaskSelected('rdphost') then
-  begin
-    try
-      ValidateBeRdpFirewallScope(RdpPort, ExpandConstant('{param:RDPNETWORKS|LocalSubnet}'), 6);
-      ValidateBeRdpFirewallScope(RdpPort, ExpandConstant('{param:RDPNETWORKS|LocalSubnet}'), 17);
-    except
-      Result := 'RDP firewall ayarları geçersiz: ' + GetExceptionMessage;
-    end;
-  end;
   if Result <> '' then
     Log('ERROR: ' + Result);
 end;
@@ -269,29 +246,6 @@ end;
 function ClientSsoFlag(Param: String): String;
 begin
   if DeploymentSso then Result := '1' else Result := '0';
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-var
-  Port, RemoteAddresses: String;
-begin
-  if CurStep <> ssPostInstall then
-    exit;
-  try
-    RemoveBeRdpFirewallRule('BeRDP RDP UDP 3389');
-    if WizardIsTaskSelected('rdphost') then
-    begin
-      Port := RdpPort;
-      RemoteAddresses := ExpandConstant('{param:RDPNETWORKS|LocalSubnet}');
-      SetBeRdpFirewallRule('BeRDP RDP Host TCP',
-        ExpandConstant('{sys}\svchost.exe'), Port, RemoteAddresses, 'TermService', 6);
-      SetBeRdpFirewallRule('BeRDP RDP Host UDP',
-        ExpandConstant('{sys}\svchost.exe'), Port, RemoteAddresses, 'TermService', 17);
-    end;
-  except
-    Log('ERROR: ' + GetExceptionMessage);
-    RaiseException(GetExceptionMessage);
-  end;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);

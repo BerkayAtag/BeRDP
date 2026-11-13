@@ -2,6 +2,7 @@ namespace BeRdp.Client.Models;
 
 public sealed class MachineRdpLocalResourceOptions
 {
+    public bool UseRemoteCredentialGuard { get; set; }
     public bool UseAllMonitors { get; set; }
     public List<int> SelectedMonitorIds { get; set; } = [];
     public List<string> SelectedMonitorDevices { get; set; } = [];
@@ -19,6 +20,7 @@ public sealed class MachineRdpLocalResourceOptions
     {
         return new MachineRdpLocalResourceOptions
         {
+            UseRemoteCredentialGuard = UseRemoteCredentialGuard,
             UseAllMonitors = UseAllMonitors,
             SelectedMonitorIds = SelectedMonitorIds is null ? [] : [.. SelectedMonitorIds],
             SelectedMonitorDevices = SelectedMonitorDevices is null ? [] : [.. SelectedMonitorDevices],

@@ -12,6 +12,7 @@ public partial class LoginWindow : Window
     private AppConfiguration? _configuration;
     private readonly bool _autoSso;
     private bool _loggingIn;
+    private readonly CancellationTokenSource _lifetime = new();
     private string? _resolvedBackendUrl;
 
     public LoginWindow() : this(true) { }
@@ -22,7 +23,7 @@ public partial class LoginWindow : Window
         _autoSso = autoSso;
         UpdateThemeButtonLabel();
         ThemeManager.ThemeChanged += UpdateThemeButtonLabel;
-        Closed += (_, _) => { ThemeManager.ThemeChanged -= UpdateThemeButtonLabel; PasswordBox.Clear(); };
+        Closed += (_, _) => { _lifetime.Cancel(); ThemeManager.ThemeChanged -= UpdateThemeButtonLabel; PasswordBox.Clear(); };
 
         try
         {
@@ -85,7 +86,7 @@ public partial class LoginWindow : Window
             return _resolvedBackendUrl;
         }
 
-        var endpoint = await BackendEndpointResolver.ResolveAsync(_configuration!.BackendBaseUrl);
+        var endpoint = await BackendEndpointResolver.ResolveAsync(_configuration!.BackendBaseUrl, _lifetime.Token);
         _resolvedBackendUrl = endpoint.Address.AbsoluteUri.TrimEnd('/');
         if (endpoint.WasCorrected && endpoint.Notice is not null)
         {
@@ -113,15 +114,15 @@ public partial class LoginWindow : Window
         {
             var backendBaseUrl = await ResolveBackendBaseUrlAsync();
             apiClient = new ApiClient(backendBaseUrl);
-            var session = await apiClient.LoginWithWindowsAsync();
+            var session = await apiClient.LoginWithWindowsAsync(_lifetime.Token);
             ProceedToMainWindow(apiClient, session, new SessionCredential
             {
                 InputUsername = session.Username,
-                Password = string.Empty,
                 UseWindowsSso = true
             });
             apiClient = null;
         }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception ex)
         {
             ShowError(GetFriendlyErrorMessage(ex));
@@ -156,16 +157,16 @@ public partial class LoginWindow : Window
         {
             var backendBaseUrl = await ResolveBackendBaseUrlAsync();
             apiClient = new ApiClient(backendBaseUrl);
-            var session = await apiClient.LoginAsync(username, password);
+            var session = await apiClient.LoginAsync(username, password, _lifetime.Token);
             ProceedToMainWindow(apiClient, session, new SessionCredential
             {
                 InputUsername = username,
-                Password = password,
                 UseWindowsSso = false
             });
             apiClient = null;
             PasswordBox.Clear();
         }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception ex)
         {
             ShowError(GetFriendlyErrorMessage(ex));
@@ -180,6 +181,7 @@ public partial class LoginWindow : Window
 
     private void ProceedToMainWindow(ApiClient apiClient, LoginResponse session, SessionCredential credential)
     {
+        _lifetime.Token.ThrowIfCancellationRequested();
         var mainWindow = new MainWindow(apiClient, session, credential, _configuration?.PollingSeconds ?? 30);
         System.Windows.Application.Current.MainWindow = mainWindow;
         mainWindow.Show();

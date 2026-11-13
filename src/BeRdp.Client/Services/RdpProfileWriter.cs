@@ -32,7 +32,7 @@ public static class RdpProfileWriter
     public static string Build(
         string ipAddress, int port, string username,
         MachineRdpLocalResourceOptions options, IReadOnlyList<RdpMonitorViewModel> monitors,
-        bool useWindowsSso = false, bool promptForCredentials = false)
+        bool useWindowsSso = false, bool promptForCredentials = true)
     {
         if (username.IndexOfAny(['\r', '\n', '\0']) >= 0)
         {
@@ -49,23 +49,20 @@ public static class RdpProfileWriter
         {
             "compression:i:1", "keyboardhook:i:2", "displayconnectionbar:i:1", "enableworkspacereconnect:i:1",
             "session bpp:i:32",
-            // Experience tab defaults, fixed for every session: Satellite speed
-            // with automatic quality detection off; only font smoothing,
-            // desktop composition and visual styles enabled, every other
-            // performance option off. No Experience UI is shown to the user,
-            // so these values are authoritative.
-            "connection type:i:3", "networkautodetect:i:0", "bandwidthautodetect:i:0",
+            // Adapt to LAN, VPN and changing network conditions.
+            "connection type:i:7", "networkautodetect:i:1", "bandwidthautodetect:i:1",
             "allow font smoothing:i:1", "allow desktop composition:i:1", "disable themes:i:0",
             "disable wallpaper:i:1", "disable full window drag:i:1", "disable menu anims:i:1",
-            "bitmapcachepersistenable:i:0", "autoreconnection enabled:i:0",
+            "bitmapcachepersistenable:i:0", "autoreconnection enabled:i:1",
             "disable cursor setting:i:0", "audiomode:i:0", "audiocapturemode:i:1", "videoplaybackmode:i:1",
-            $"prompt for credentials:i:{(promptForCredentials ? 1 : 0)}", "promptcredentialonce:i:1", "authentication level:i:2",
+            $"prompt for credentials:i:{(promptForCredentials && !useWindowsSso ? 1 : 0)}", "promptcredentialonce:i:1", "authentication level:i:2",
             "negotiate security layer:i:1", "redirectposdevices:i:0", "redirectwebauthn:i:0"
         })
         {
             settings.AppendLine(line);
         }
-        settings.AppendLine($"username:s:{username}");
+        // Remote Credential Guard always uses the current Windows identity.
+        if (!useWindowsSso) { settings.AppendLine($"username:s:{username}"); }
         settings.AppendLine("enablecredsspsupport:i:1");
         settings.AppendLine($"full address:s:{endpoint}");
         settings.AppendLine($"alternate full address:s:{endpoint}");

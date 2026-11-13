@@ -92,7 +92,7 @@ public class MachinesController(
                 IpAddress = machine.IpAddress,
                 RdpHostName = machine.RdpHostName,
                 RdpPort = machine.RdpPort,
-                IsOnline = await rdpAvailabilityService.IsAvailableAsync(machine.IpAddress, machine.RdpPort, cancellationToken),
+                IsOnline = await rdpAvailabilityService.IsAvailableAsync(machine.RdpHostName ?? machine.IpAddress, machine.RdpPort, cancellationToken),
                 AssignedUserDisplayNames = [],
                 AssignedUsernames = [],
                 AssignedAdGroups = []
@@ -109,7 +109,7 @@ public class MachinesController(
             IpAddress = machine.IpAddress,
             RdpHostName = machine.RdpHostName,
             RdpPort = machine.RdpPort,
-            IsOnline = await rdpAvailabilityService.IsAvailableAsync(machine.IpAddress, machine.RdpPort, cancellationToken),
+            IsOnline = await rdpAvailabilityService.IsAvailableAsync(machine.RdpHostName ?? machine.IpAddress, machine.RdpPort, cancellationToken),
             AssignedUserCount = machine.UserMachines.Count,
             AssignedAdGroupCount = machine.AdGroupEntitlements.Count,
             AssignedUserDisplayNames = machine.UserMachines

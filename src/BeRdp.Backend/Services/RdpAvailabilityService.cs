@@ -10,6 +10,7 @@ public sealed class RdpAvailabilityService(IMemoryCache cache, ILogger<RdpAvaila
 
     public async Task<bool> IsAvailableAsync(string ipAddress, int port, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var key = (ipAddress, port);
         if (cache.TryGetValue(key, out bool cached))
         {

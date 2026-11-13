@@ -29,6 +29,15 @@ jobs:
       - name: Build installer artifacts
         shell: pwsh
         run: ./installer/Build-Installers.ps1
+      - name: Live API and browser regression tests
+        shell: pwsh
+        run: |
+          npm install --prefix "$env:RUNNER_TEMP/berdp-browser" playwright@1.62.1 --no-audit --no-fund
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:NODE_PATH = "$env:RUNNER_TEMP/berdp-browser/node_modules"
+          $env:PLAYWRIGHT_CHROMIUM_EXECUTABLE = "${env:ProgramFiles(x86)}/Microsoft/Edge/Application/msedge.exe"
+          node tests/Smoke.Web.cjs
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Verify Windows installation and appwiz Publisher
         shell: pwsh
         run: ./tests/Smoke.Installers.ps1

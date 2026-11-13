@@ -48,6 +48,7 @@ public partial class RdpLocalResourcesWindow : Window
         DrivesCheckBox.IsChecked = SelectedOptions.RedirectDrives;
         ComPortsCheckBox.IsChecked = SelectedOptions.RedirectComPorts;
         PnPDevicesCheckBox.IsChecked = SelectedOptions.RedirectPnPDevices;
+        RemoteCredentialGuardCheckBox.IsChecked = SelectedOptions.UseRemoteCredentialGuard;
         _displayReady = true;
         UpdateDisplayControls();
         if (devices.Any(device => !_selectionOrder.Contains(device, StringComparer.OrdinalIgnoreCase)))
@@ -73,6 +74,7 @@ public partial class RdpLocalResourcesWindow : Window
     {
         var options = new MachineRdpLocalResourceOptions
         {
+            UseRemoteCredentialGuard = RemoteCredentialGuardCheckBox.IsChecked == true,
             UseAllMonitors = UseAllMonitorsCheckBox.IsChecked == true,
             SelectedMonitorDevices = [.. _selectionOrder],
             SelectedMonitorIds = _selectionOrder.Select(device => Monitors.Single(x => x.DeviceName == device).Id).ToList(),
@@ -137,6 +139,7 @@ public partial class RdpLocalResourcesWindow : Window
     private void DrawMonitorLayout()
     {
         MonitorLayoutCanvas.Children.Clear();
+        if (Monitors.Count == 0) { return; }
         var left = Monitors.Min(x => x.Left);
         var top = Monitors.Min(x => x.Top);
         var totalWidth = Monitors.Max(x => x.Left + x.Width) - left;

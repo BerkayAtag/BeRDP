@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.0 — 13 Kasım 2026
+
+- Windows kimlik ekranı varsayılan; parola saklama/Credential Manager bağımlılığı kaldırıldı. Yerel BeRDP parolası RDP'ye aktarılmaz.
+- İsteğe bağlı Remote Credential Guard, otomatik ağ kalitesi ve kesinti sonrası yeniden bağlantı.
+- DNS hedefiyle durum kontrolü, AD girişinde UPN kullanımı, süresi dolan canlı kanalın kapatılması ve giriş iptali düzeltildi.
+- GPO ile çakışabilen rdphost kurulum görevi kaldırıldı; eski politika değerleri otomatik değiştirilmez.
+- Web/API regresyonları Windows paket kabul iş akışına eklendi. Tanıtım şablonu korundu.
+
+
 ## 1.7.0
 
 Installers

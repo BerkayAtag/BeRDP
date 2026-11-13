@@ -1,4 +1,4 @@
-# BeRDP 1.7.0 kurulum ve işletim
+# BeRDP 1.8.0 kurulum ve işletim
 
 ## Ön koşullar
 
@@ -45,7 +45,17 @@ Etkileşimli kurulumda sihirbaz yalnız sunucu adresini sorar ve aynı sayfada d
 
 `/SSO=1` yalnız etki alanı DNS adresi ve doğrulanmış Windows SSO ortamında kullanılmalıdır. Uzak HTTP adresleri reddedilir; HTTP sadece loopback geliştirme içindir. Yükseltmede mevcut URL korunur. Windows RDP kaynak izin uyarıları değiştirilmez; eski `/RDPWARNING=0` reddedilir.
 
-Hedef VM'lere istemci kurmak gerekli değildir. İsteğe bağlı `rdphost` setup görevi hedef makine grafik/transport politikaları ve firewall kuralları değiştirir; merkezi GPO ile yönetilen VM'lerde bu görevi kullanmayın. Normal istemci kurulumu inbound RDP açmaz.
+Hedef VM'lere istemci kurmak gerekli değildir. 1.8.0 ile `rdphost` görevi kaldırılmıştır; bu parametreyle dağıtım açık bir hata verir. İstemci kurulumu Windows RDP politikalarına yazmaz ve inbound RDP açmaz. Daha eski bir sürümde bu görev kullanıldıysa `SelectTransport`, `AVC444ModePreferred`, `AVCHardwareEncodePreferred`, `bEnumerateHWBeforeSW` değerlerini ve BeRDP RDP Host firewall kurallarını kurumun GPO yöneticisiyle değerlendirin. Yeni sürüm, kaynağını ayıramadığı eski politika değerlerini otomatik silmez.
+
+### RDP kimliği ve Windows politikaları
+
+Varsayılan bağlantı Windows'un kendi kimlik ekranını açar. BeRDP giriş parolası hedefe aktarılmaz, istemci oturumu boyunca tutulmaz ve Credential Manager'a yazılmaz. Yerel BeRDP hesabı Windows hesabı değildir; hedefin izin verdiği Windows/domain hesabını bu ekranda seçin. AD kullanıcılarında sunucunun döndürdüğü UPN önerilir.
+
+Makine ayarlarında **Windows oturumumu kullan (Remote Credential Guard)** seçilirse bağlantı mevcut Windows hesabıyla `/remoteGuard` kullanır. Bu seçenek BeRDP API girişindeki `/SSO=1` ayarından bağımsızdır. Hedefin tam DNS adı, Kerberos ve uyumlu istemci/hedef politikası gerekir; IP hedefleri uygulamada reddedilir. Başarısız olduğunda otomatik NTLM/parola düşürmesi yapılmaz; ortam gereksinimlerini doğrulayın veya makine ayarından Windows kimlik ekranını seçin.
+
+NLA, TLS/sertifika doğrulaması, Credential Guard ve Windows oturum açma hakları korunur. Kaydedilmiş parola kullanımını yasaklayan politikalarda Windows kimlik ekranı kullanılır. RDP'yi tümden engelleyen GPO, eksik Remote Desktop Users yetkisi, DNS/SPN hatası veya firewall engeli için hedefte/kurumda düzeltme gerekir. Durum etiketi sunucudan hedef DNS/IP ve TCP portuna erişimi gösterir; kullanıcının ağ yolunu veya başarılı Windows oturum açmayı garanti etmez.
+
+Microsoft başvuruları: [Remote Credential Guard](https://learn.microsoft.com/en-us/windows/security/identity-protection/remote-credential-guard), [Credential Guard uyumluluğu](https://learn.microsoft.com/en-us/windows/security/identity-protection/credential-guard/considerations-known-issues).
 
 ## Yükseltme / geri dönüş
 

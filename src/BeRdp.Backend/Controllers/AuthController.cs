@@ -59,14 +59,14 @@ public class AuthController(
             try
             {
                 isAuthenticated = await activeDirectoryService.ValidateCredentialsAsync(
-                    user.Username,
+                    user.UserPrincipalName ?? user.Username,
                     request.Password,
                     activeDirectoryConfiguration,
                     cancellationToken);
                 if (isAuthenticated)
                 {
                     adGroupNames = (await activeDirectoryService.GetUserGroupNamesAsync(
-                        user.Username, activeDirectoryConfiguration, cancellationToken)).ToArray();
+                        user.UserPrincipalName ?? user.Username, activeDirectoryConfiguration, cancellationToken)).ToArray();
                 }
             }
             catch (InvalidOperationException ex)
