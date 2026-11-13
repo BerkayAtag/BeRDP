@@ -4,6 +4,7 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hoste
     throw 'Installer smoke tests require a disposable GitHub-hosted Windows runner.'
 }
 $root = Split-Path $PSScriptRoot -Parent
+$expectedVersion = ([xml](Get-Content (Join-Path $root 'Directory.Build.props') -Raw)).Project.PropertyGroup.Version
 $output = Join-Path $root 'dist/installers'
 $testRoot = Join-Path $env:RUNNER_TEMP 'BeRDP-PackageSmoke'
 $serverKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{D97649F0-71F9-4A5F-8ED3-21990CCFA6DF}_is1'
@@ -19,7 +20,26 @@ function Run-Setup([string]$Executable, [string[]]$SetupArguments) {
 $common = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-')
 $serverInstalled = $false
 $clientInstalled = $false
+function Get-RdpPolicySnapshot {
+    $values = [ordered]@{}
+    foreach ($path in @('SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services',
+                       'SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\Client')) {
+        $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($path)
+        try {
+            $values[$path] = [ordered]@{}
+            if ($null -ne $key) {
+                foreach ($name in ($key.GetValueNames() | Sort-Object)) { $values[$path][$name] = $key.GetValue($name) }
+            }
+        } finally { if ($null -ne $key) { $key.Dispose() } }
+    }
+    return ($values | ConvertTo-Json -Depth 5 -Compress)
+}
+$policiesBefore = Get-RdpPolicySnapshot
 try {
+    $rejected = Start-Process -FilePath "$output/BeRDP.Client.Setup.exe" -ArgumentList ($common + @('/TASKS=rdphost','/BACKENDURL="https://berdp.example.test/api"',"/DIR=`"$testRoot/Client`"")) -WindowStyle Hidden -PassThru
+    if (-not $rejected.WaitForExit(120000)) { $rejected.Kill(); throw 'Legacy rdphost rejection timed out' }
+    if ($rejected.ExitCode -eq 0 -or (Test-Path $clientKey)) { throw 'Legacy rdphost task was not rejected before installation' }
+    Write-Host 'PASS legacy rdphost task fails before installation'
     Run-Setup "$output/BeRDP.Client.Setup.exe" ($common + @('/SSO=0','/BACKENDURL="https://berdp.example.test/api"',"/DIR=`"$testRoot/Client`"", "/LOG=`"$testRoot/client.log`""))
     $clientInstalled = $true
     Run-Setup "$output/BeRDP.Server.Setup.exe" ($common + @('/SSO=0',"/DIR=`"$testRoot/Server`"", "/LOG=`"$testRoot/server.log`""))
@@ -27,7 +47,7 @@ try {
     $results = foreach ($entry in @(@{Kind='Client';Key=$clientKey},@{Kind='Server';Key=$serverKey})) {
         $value = Get-ItemProperty -LiteralPath $entry.Key
         if ($value.Publisher -cne 'Berkay Atağ') { throw "Incorrect appwiz Publisher for $($entry.Kind)" }
-        if ($value.DisplayVersion -ne '1.7.0') { throw "Incorrect installed version for $($entry.Kind)" }
+        if ($value.DisplayVersion -ne $expectedVersion) { throw "Incorrect installed version for $($entry.Kind)" }
         $iconPath = ($value.DisplayIcon -replace ',\s*-?\d+$', '').Trim('"')
         if (-not $iconPath -or -not (Test-Path -LiteralPath $iconPath -PathType Leaf)) { throw "Missing appwiz icon for $($entry.Kind)" }
         Write-Host "PASS appwiz.cpl $($entry.Kind): Publisher=$($value.Publisher), Version=$($value.DisplayVersion), Icon=$($value.DisplayIcon)"
@@ -39,6 +59,8 @@ try {
         if ($listeners.LocalAddress | Where-Object { $_ -notin @('127.0.0.1','::1') }) { throw "Service exposed beyond loopback: $port" }
     }
     Write-Host 'PASS installed services are healthy and listen only on loopback'
+    if ((Get-RdpPolicySnapshot) -cne $policiesBefore) { throw 'Installation changed Windows RDP policies' }
+    Write-Host 'PASS installation preserves Windows RDP policies'
     $defaultLogin = Invoke-WebRequest 'http://127.0.0.1:5001/login' -Method Post -ContentType 'application/json' -Body '{"username":"admin","password":"Admin123!"}' -SkipHttpErrorCheck
     if ($defaultLogin.StatusCode -ne 401) { throw 'Unexpected default administrator access' }
     Write-Host 'PASS installed server rejects historical default credentials'
@@ -71,3 +93,4 @@ if ((Test-Path $serverKey) -or (Test-Path $clientKey)) { throw 'Uninstall regist
 if (Get-Service BeRdpBackend,BeRdpAdminConsole -ErrorAction SilentlyContinue) { throw 'Uninstall left BeRDP services registered' }
 Write-Host 'PASS both uninstall registrations and services were removed'
 Write-Host 'SUCCESS: real Windows installation, appwiz Publisher, health, reinstall and uninstall checks passed.'
+
